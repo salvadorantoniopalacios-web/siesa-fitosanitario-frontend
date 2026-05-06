@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/api";
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 function Usuarios({ usuario }) {
   const [usuarios, setUsuarios] = useState([]);
@@ -24,7 +24,7 @@ function Usuarios({ usuario }) {
     activo: true,
   });
 
-  const esAdmin = usuario?.rol === "Admin";
+  const esAdmin = usuario?.rol?.toLowerCase() === "admin";
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
