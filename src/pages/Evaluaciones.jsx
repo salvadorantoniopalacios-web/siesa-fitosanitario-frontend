@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_API_URL;
 
 function Evaluaciones({ usuario }) {
   const [evaluaciones, setEvaluaciones] = useState([]);
