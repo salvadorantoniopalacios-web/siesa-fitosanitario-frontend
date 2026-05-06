@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
-  const esAdmin = usuario?.rol === "Admin";
+  const esAdmin = usuario?.rol?.toLowerCase() === "admin";
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
 
