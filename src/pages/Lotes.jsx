@@ -22,63 +22,36 @@ function Lotes({ usuario }) {
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
   const [loteHistorial, setLoteHistorial] = useState(null);
 
-  const rol = usuario?.rol?.toLowerCase();
-  const esAdmin = rol === "admin";
-  const esTecnico = rol === "técnico" || rol === "tecnico";
-  const esConsulta = rol === "consulta";
+  const esAdmin = usuario?.rol === "Admin";
+  const esTecnico = usuario?.rol === "Técnico";
+  const esConsulta = usuario?.rol === "Consulta";
 
   const puedeCrearEditar = esAdmin || esTecnico;
   const puedeEliminar = esAdmin;
 
   const [form, setForm] = useState({
-    codigo: "",
-    farm_id: "",
-    cultivo: "",
-    variedad: "",
-    area_hectareas: "",
-    fecha_siembra: "",
-    estado: "Activo",
-    latitud: "",
-    longitud: "",
-  });
+  codigo: "",
+  farm_id: "",
+  cultivo: "",
+  variedad: "",
+  area_hectareas: "",
+  fecha_siembra: "",
+  estado: "Activo",
+
+  latitud: "",
+  longitud: "",
+});
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
-    setTimeout(() => setMensaje({ texto: "", tipo: "" }), 4500);
+
+    setTimeout(() => {
+      setMensaje({ texto: "", tipo: "" });
+    }, 4500);
   };
 
-  const limpiarMensaje = () => setMensaje({ texto: "", tipo: "" });
-
-  const usarUbicacionActual = () => {
-    limpiarMensaje();
-
-    if (!navigator.geolocation) {
-      mostrarMensaje("Este dispositivo no permite obtener GPS.", "error");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setForm((prev) => ({
-          ...prev,
-          latitud: position.coords.latitude.toString(),
-          longitud: position.coords.longitude.toString(),
-        }));
-
-        mostrarMensaje("GPS del lote capturado correctamente.", "ok");
-      },
-      () => {
-        mostrarMensaje(
-          "No se pudo obtener la ubicación. Revisa permisos de GPS.",
-          "error"
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+  const limpiarMensaje = () => {
+    setMensaje({ texto: "", tipo: "" });
   };
 
   const cargarFincas = async () => {
@@ -121,20 +94,17 @@ function Lotes({ usuario }) {
 
   const limpiarFormulario = () => {
     setForm({
-      codigo: "",
-      farm_id: "",
-      cultivo: "",
-      variedad: "",
-      area_hectareas: "",
-      fecha_siembra: "",
-      estado: "Activo",
-      latitud: "",
-      longitud: "",
-    });
+  codigo: "",
+  farm_id: "",
+  cultivo: "",
+  variedad: "",
+  area_hectareas: "",
+  fecha_siembra: "",
+  estado: "Activo",
 
-    setEditandoId(null);
-    limpiarMensaje();
-  };
+  latitud: "",
+  longitud: "",
+});
 
   const validarFormulario = () => {
     limpiarMensaje();
@@ -163,27 +133,34 @@ function Lotes({ usuario }) {
   };
 
   const prepararDataLote = () => ({
-    codigo: form.codigo,
-    farm_id: Number(form.farm_id),
-    cultivo: form.cultivo,
-    variedad: form.variedad || null,
-    area_hectareas:
-      form.area_hectareas && !isNaN(form.area_hectareas)
-        ? Number(form.area_hectareas)
-        : null,
-    fecha_siembra: form.fecha_siembra || null,
-    estado: form.estado,
-    latitud:
-      form.latitud !== "" && form.latitud !== null && form.latitud !== undefined
-        ? Number(form.latitud)
-        : null,
-    longitud:
-      form.longitud !== "" &&
-      form.longitud !== null &&
-      form.longitud !== undefined
-        ? Number(form.longitud)
-        : null,
-  });
+  codigo: form.codigo,
+  farm_id: Number(form.farm_id),
+  cultivo: form.cultivo,
+  variedad: form.variedad || null,
+
+  area_hectareas:
+    form.area_hectareas && !isNaN(form.area_hectareas)
+      ? Number(form.area_hectareas)
+      : null,
+
+  fecha_siembra: form.fecha_siembra || null,
+
+  estado: form.estado,
+
+  latitud:
+    form.latitud !== "" &&
+    form.latitud !== null &&
+    form.latitud !== undefined
+      ? Number(form.latitud)
+      : null,
+
+  longitud:
+    form.longitud !== "" &&
+    form.longitud !== null &&
+    form.longitud !== undefined
+      ? Number(form.longitud)
+      : null,
+});
 
   const guardarLote = async (e) => {
     e.preventDefault();
@@ -234,11 +211,12 @@ function Lotes({ usuario }) {
         ? lote.fecha_siembra.substring(0, 10)
         : "",
       estado: lote.estado || "Activo",
-      latitud: lote.latitud || "",
-      longitud: lote.longitud || "",
     });
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const eliminarLote = async (id) => {
@@ -255,6 +233,7 @@ function Lotes({ usuario }) {
 
     try {
       setLoading(true);
+
       await axios.delete(`${API_URL}/lots/${id}`);
       cargarLotes();
       mostrarMensaje("Lote eliminado correctamente.", "ok");
@@ -270,8 +249,13 @@ function Lotes({ usuario }) {
     }
   };
 
-  const abrirHistorial = (lote) => setLoteHistorial(lote);
-  const cerrarHistorial = () => setLoteHistorial(null);
+  const abrirHistorial = (lote) => {
+    setLoteHistorial(lote);
+  };
+
+  const cerrarHistorial = () => {
+    setLoteHistorial(null);
+  };
 
   const colorRiesgo = (riesgo) => {
     if (riesgo === "Crítico") return { background: "#fee2e2", color: "#991b1b" };
@@ -307,7 +291,7 @@ function Lotes({ usuario }) {
     <div style={styles.container}>
       <h1 style={styles.title}>Lotes</h1>
       <p style={styles.subtitle}>
-        Gestión de lotes agrícolas por finca, cultivo, variedad, área, estado productivo y ubicación GPS.
+        Gestión de lotes agrícolas por finca, cultivo, variedad, área y estado productivo.
       </p>
 
       {usuario && (
@@ -326,7 +310,9 @@ function Lotes({ usuario }) {
         <div
           style={{
             ...styles.messageBox,
-            ...(mensaje.tipo === "ok" ? styles.messageOk : styles.messageError),
+            ...(mensaje.tipo === "ok"
+              ? styles.messageOk
+              : styles.messageError),
           }}
         >
           {mensaje.texto}
@@ -347,9 +333,9 @@ function Lotes({ usuario }) {
         </div>
 
         <div style={styles.card}>
-          <p style={styles.cardLabel}>Lotes con GPS</p>
+          <p style={styles.cardLabel}>Cultivos registrados</p>
           <h2 style={styles.cardNumber}>
-            {lotes.filter((l) => l.latitud && l.longitud).length}
+            {new Set(lotes.map((l) => l.cultivo).filter(Boolean)).size}
           </h2>
         </div>
       </div>
@@ -423,14 +409,66 @@ function Lotes({ usuario }) {
             />
 
             <input
-              style={styles.input}
-              type="date"
-              value={form.fecha_siembra}
-              onChange={(e) => {
-                limpiarMensaje();
-                setForm({ ...form, fecha_siembra: e.target.value });
-              }}
-            />
+  style={styles.input}
+  type="number"
+  step="any"
+  placeholder="Latitud GPS"
+  value={form.latitud}
+  onChange={(e) => {
+    limpiarMensaje();
+
+    setForm({
+      ...form,
+      latitud: e.target.value,
+    });
+  }}
+/>
+
+<input
+  style={styles.input}
+  type="number"
+  step="any"
+  placeholder="Longitud GPS"
+  value={form.longitud}
+  onChange={(e) => {
+    limpiarMensaje();
+
+    setForm({
+      ...form,
+      longitud: e.target.value,
+    });
+  }}
+/>
+
+<button
+  type="button"
+  style={styles.historyButton}
+  onClick={() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm({
+          ...form,
+          latitud: position.coords.latitude,
+          longitud: position.coords.longitude,
+        });
+
+        mostrarMensaje(
+          "GPS capturado correctamente.",
+          "ok"
+        );
+      },
+
+      () => {
+        mostrarMensaje(
+          "No se pudo obtener GPS.",
+          "error"
+        );
+      }
+    );
+  }}
+>
+  📍 Usar mi ubicación
+</button>
 
             <select
               style={styles.input}
@@ -443,39 +481,6 @@ function Lotes({ usuario }) {
               <option value="Activo">Activo</option>
               <option value="Inactivo">Inactivo</option>
             </select>
-
-            <input
-              style={styles.input}
-              type="number"
-              step="any"
-              placeholder="Latitud del lote"
-              value={form.latitud}
-              onChange={(e) => {
-                limpiarMensaje();
-                setForm({ ...form, latitud: e.target.value });
-              }}
-            />
-
-            <input
-              style={styles.input}
-              type="number"
-              step="any"
-              placeholder="Longitud del lote"
-              value={form.longitud}
-              onChange={(e) => {
-                limpiarMensaje();
-                setForm({ ...form, longitud: e.target.value });
-              }}
-            />
-
-            <button
-              type="button"
-              onClick={usarUbicacionActual}
-              style={styles.gpsButton}
-              disabled={loading}
-            >
-              📍 Usar mi ubicación actual
-            </button>
 
             <button
               type="submit"
@@ -505,6 +510,13 @@ function Lotes({ usuario }) {
         </div>
       )}
 
+      {esConsulta && (
+        <div style={styles.readOnlyBox}>
+          Este usuario tiene permisos de consulta. Puede revisar los lotes, pero
+          no puede crear, editar ni eliminar registros.
+        </div>
+      )}
+
       <div style={styles.panel}>
         <div style={styles.tableHeader}>
           <h2 style={styles.panelTitle}>Listado de lotes</h2>
@@ -525,9 +537,9 @@ function Lotes({ usuario }) {
                 <th style={styles.th}>Código</th>
                 <th style={styles.th}>Finca</th>
                 <th style={styles.th}>Cultivo</th>
+                <th style={styles.th}>Variedad</th>
                 <th style={styles.th}>Área ha</th>
                 <th style={styles.th}>Fecha siembra</th>
-                <th style={styles.th}>GPS</th>
                 <th style={styles.th}>Estado</th>
                 <th style={styles.th}>Historial</th>
                 {(puedeCrearEditar || puedeEliminar) && (
@@ -552,18 +564,12 @@ function Lotes({ usuario }) {
                     <td style={styles.td}>{lote.codigo}</td>
                     <td style={styles.td}>{lote.finca_nombre || "Sin finca"}</td>
                     <td style={styles.td}>{lote.cultivo || "-"}</td>
+                    <td style={styles.td}>{lote.variedad || "-"}</td>
                     <td style={styles.td}>{lote.area_hectareas || "-"}</td>
                     <td style={styles.td}>
                       {lote.fecha_siembra
                         ? new Date(lote.fecha_siembra).toLocaleDateString()
                         : "-"}
-                    </td>
-                    <td style={styles.td}>
-                      {lote.latitud && lote.longitud ? (
-                        <span style={styles.gpsOk}>GPS registrado</span>
-                      ) : (
-                        <span style={styles.gpsNo}>Sin GPS</span>
-                      )}
                     </td>
                     <td style={styles.td}>
                       <span
@@ -699,6 +705,61 @@ function Lotes({ usuario }) {
                 </div>
               )}
             </div>
+
+            <div style={styles.timeline}>
+              <h3 style={styles.chartTitle}>Línea de tiempo</h3>
+
+              {historialLote.length === 0 ? (
+                <div style={styles.emptyHistory}>
+                  No hay historial fitosanitario para este lote.
+                </div>
+              ) : (
+                historialLote
+                  .slice()
+                  .reverse()
+                  .map((e) => (
+                    <div key={e.id} style={styles.timelineItem}>
+                      <div style={styles.timelineDot}></div>
+
+                      <div style={styles.timelineContent}>
+                        <div style={styles.timelineTop}>
+                          <strong>
+                            {e.fecha ? new Date(e.fecha).toLocaleDateString() : "-"}
+                          </strong>
+
+                          <span
+                            style={{
+                              ...styles.badge,
+                              ...colorRiesgo(e.nivel_riesgo),
+                            }}
+                          >
+                            {e.nivel_riesgo}
+                          </span>
+                        </div>
+
+                        <p style={styles.timelineText}>
+                          <strong>Plaga/Enfermedad:</strong>{" "}
+                          {e.plaga_enfermedad || "-"}
+                        </p>
+
+                        <p style={styles.timelineText}>
+                          <strong>Incidencia:</strong> {e.incidencia}% |{" "}
+                          <strong>Severidad:</strong> {e.severidad}
+                        </p>
+
+                        <p style={styles.timelineText}>
+                          <strong>Responsable:</strong> {e.responsable || "-"}
+                        </p>
+
+                        <p style={styles.timelineText}>
+                          <strong>Observaciones:</strong>{" "}
+                          {e.observaciones || "Sin observaciones."}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -734,6 +795,15 @@ const styles = {
   roleNote: {
     color: "#475569",
     fontWeight: "500",
+  },
+  readOnlyBox: {
+    background: "#f8fafc",
+    color: "#475569",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    marginBottom: "20px",
+    border: "1px solid #cbd5e1",
+    fontWeight: "600",
   },
   messageBox: {
     padding: "14px 16px",
@@ -801,15 +871,6 @@ const styles = {
     outline: "none",
     background: "#ffffff",
   },
-  gpsButton: {
-    padding: "12px 16px",
-    borderRadius: "12px",
-    border: "none",
-    background: "#0f766e",
-    color: "#ffffff",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
   button: {
     padding: "12px 16px",
     borderRadius: "12px",
@@ -868,22 +929,6 @@ const styles = {
     borderRadius: "999px",
     fontWeight: "700",
     fontSize: "13px",
-  },
-  gpsOk: {
-    background: "#dcfce7",
-    color: "#166534",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    fontWeight: "700",
-    fontSize: "12px",
-  },
-  gpsNo: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    fontWeight: "700",
-    fontSize: "12px",
   },
   actions: {
     display: "flex",
@@ -1009,6 +1054,41 @@ const styles = {
     background: "#f8fafc",
     borderRadius: "14px",
     border: "1px dashed #cbd5e1",
+  },
+  timeline: {
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "18px",
+    padding: "18px",
+  },
+  timelineItem: {
+    display: "flex",
+    gap: "14px",
+    borderBottom: "1px solid #e2e8f0",
+    padding: "14px 0",
+  },
+  timelineDot: {
+    width: "14px",
+    height: "14px",
+    minWidth: "14px",
+    borderRadius: "999px",
+    background: "#15803d",
+    marginTop: "5px",
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelineTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "center",
+    marginBottom: "8px",
+  },
+  timelineText: {
+    margin: "5px 0",
+    color: "#334155",
+    fontSize: "14px",
   },
 };
 
