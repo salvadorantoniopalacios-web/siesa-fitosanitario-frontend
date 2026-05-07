@@ -13,6 +13,7 @@ function Evaluaciones({ usuario }) {
   const [loading, setLoading] = useState(false);
   const [foto, setFoto] = useState(null);
   const [fotoActual, setFotoActual] = useState(null);
+
   const [mensaje, setMensaje] = useState({
     texto: "",
     tipo: "",
@@ -34,6 +35,8 @@ function Evaluaciones({ usuario }) {
     severidad: "",
     observaciones: "",
     responsable: "",
+    latitud: "",
+    longitud: "",
   });
 
   const obtenerToken = () => {
@@ -45,6 +48,21 @@ function Evaluaciones({ usuario }) {
     );
   };
 
+  const limpiarMensaje = () => {
+    setMensaje({
+      texto: "",
+      tipo: "",
+    });
+  };
+
+  const mostrarMensaje = (texto, tipo) => {
+    setMensaje({ texto, tipo });
+
+    setTimeout(() => {
+      setMensaje({ texto: "", tipo: "" });
+    }, 4500);
+  };
+
   const obtenerEvaluaciones = async () => {
     try {
       const res = await axios.get(`${API_URL}/evaluations`);
@@ -54,6 +72,7 @@ function Evaluaciones({ usuario }) {
         "Error obteniendo evaluaciones:",
         error.response?.data || error.message
       );
+
       setMensaje({
         texto: "No se pudieron cargar las evaluaciones.",
         tipo: "error",
@@ -66,7 +85,11 @@ function Evaluaciones({ usuario }) {
       const res = await axios.get(`${API_URL}/farms`);
       setFincas(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error obteniendo fincas:", error.response?.data || error.message);
+      console.error(
+        "Error obteniendo fincas:",
+        error.response?.data || error.message
+      );
+
       setMensaje({
         texto: "No se pudieron cargar las fincas.",
         tipo: "error",
@@ -79,7 +102,11 @@ function Evaluaciones({ usuario }) {
       const res = await axios.get(`${API_URL}/lots`);
       setLotes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error obteniendo lotes:", error.response?.data || error.message);
+      console.error(
+        "Error obteniendo lotes:",
+        error.response?.data || error.message
+      );
+
       setMensaje({
         texto: "No se pudieron cargar los lotes.",
         tipo: "error",
@@ -93,6 +120,35 @@ function Evaluaciones({ usuario }) {
     obtenerLotes();
   }, []);
 
+  const obtenerUbicacionActual = () => {
+    limpiarMensaje();
+
+    if (!navigator.geolocation) {
+      mostrarMensaje("El navegador no soporta GPS.", "error");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm((prev) => ({
+          ...prev,
+          latitud: position.coords.latitude.toFixed(7),
+          longitud: position.coords.longitude.toFixed(7),
+        }));
+
+        mostrarMensaje("GPS de evaluación capturado correctamente.", "ok");
+      },
+      () => {
+        mostrarMensaje("No se pudo obtener la ubicación GPS.", "error");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     limpiarMensaje();
@@ -103,6 +159,7 @@ function Evaluaciones({ usuario }) {
         farm_id: value,
         lot_id: "",
       });
+
       return;
     }
 
@@ -119,7 +176,12 @@ function Evaluaciones({ usuario }) {
       return;
     }
 
-    const tiposPermitidos = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    const tiposPermitidos = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "image/webp",
+    ];
 
     if (!tiposPermitidos.includes(archivo.type)) {
       mostrarMensaje("Solo se permiten imágenes JPG, PNG o WEBP.", "error");
@@ -148,6 +210,8 @@ function Evaluaciones({ usuario }) {
       severidad: "",
       observaciones: "",
       responsable: "",
+      latitud: "",
+      longitud: "",
     });
 
     setFoto(null);
@@ -156,24 +220,10 @@ function Evaluaciones({ usuario }) {
     limpiarMensaje();
 
     const inputFoto = document.getElementById("foto-evaluacion");
+
     if (inputFoto) {
       inputFoto.value = "";
     }
-  };
-
-  const limpiarMensaje = () => {
-    setMensaje({
-      texto: "",
-      tipo: "",
-    });
-  };
-
-  const mostrarMensaje = (texto, tipo) => {
-    setMensaje({ texto, tipo });
-
-    setTimeout(() => {
-      setMensaje({ texto: "", tipo: "" });
-    }, 4500);
   };
 
   const lotesFiltradosPorFinca = form.farm_id
@@ -184,6 +234,7 @@ function Evaluaciones({ usuario }) {
     if (riesgo === "Crítico") return { background: "#fee2e2", color: "#991b1b" };
     if (riesgo === "Alto") return { background: "#ffedd5", color: "#9a3412" };
     if (riesgo === "Medio") return { background: "#fef9c3", color: "#854d0e" };
+
     return { background: "#dcfce7", color: "#166534" };
   };
 
@@ -209,6 +260,7 @@ function Evaluaciones({ usuario }) {
         "Completa fecha, finca, lote, plaga/enfermedad, incidencia y severidad.",
         "error"
       );
+
       return false;
     }
 
@@ -231,6 +283,8 @@ function Evaluaciones({ usuario }) {
     data.append("severidad", form.severidad);
     data.append("observaciones", form.observaciones || "");
     data.append("responsable", form.responsable || "");
+    data.append("latitud", form.latitud || "");
+    data.append("longitud", form.longitud || "");
 
     if (foto) {
       data.append("foto", foto);
@@ -238,7 +292,6 @@ function Evaluaciones({ usuario }) {
 
     return data;
   };
-
   const crearEvaluacion = async (e) => {
     e.preventDefault();
 
@@ -257,7 +310,11 @@ function Evaluaciones({ usuario }) {
       obtenerEvaluaciones();
       mostrarMensaje("Evaluación creada correctamente.", "ok");
     } catch (error) {
-      console.error("Error creando evaluación:", error.response?.data || error.message);
+      console.error(
+        "Error creando evaluación:",
+        error.response?.data || error.message
+      );
+
       mostrarMensaje(
         error.response?.data?.mensaje || "No se pudo crear la evaluación.",
         "error"
@@ -287,9 +344,12 @@ function Evaluaciones({ usuario }) {
       severidad: evaluacion.severidad || "",
       observaciones: evaluacion.observaciones || "",
       responsable: evaluacion.responsable || "",
+      latitud: evaluacion.latitud || "",
+      longitud: evaluacion.longitud || "",
     });
 
     const inputFoto = document.getElementById("foto-evaluacion");
+
     if (inputFoto) {
       inputFoto.value = "";
     }
@@ -322,7 +382,11 @@ function Evaluaciones({ usuario }) {
       obtenerEvaluaciones();
       mostrarMensaje("Evaluación actualizada correctamente.", "ok");
     } catch (error) {
-      console.error("Error actualizando evaluación:", error.response?.data || error.message);
+      console.error(
+        "Error actualizando evaluación:",
+        error.response?.data || error.message
+      );
+
       mostrarMensaje(
         error.response?.data?.mensaje || "No se pudo actualizar la evaluación.",
         "error"
@@ -351,7 +415,11 @@ function Evaluaciones({ usuario }) {
       obtenerEvaluaciones();
       mostrarMensaje("Evaluación eliminada correctamente.", "ok");
     } catch (error) {
-      console.error("Error eliminando evaluación:", error.response?.data || error.message);
+      console.error(
+        "Error eliminando evaluación:",
+        error.response?.data || error.message
+      );
+
       mostrarMensaje(
         error.response?.data?.mensaje || "No se pudo eliminar la evaluación.",
         "error"
@@ -368,7 +436,10 @@ function Evaluaciones({ usuario }) {
       const token = obtenerToken();
 
       if (!token) {
-        mostrarMensaje("No se encontró token de sesión. Cierre sesión e ingrese nuevamente.", "error");
+        mostrarMensaje(
+          "No se encontró token de sesión. Cierre sesión e ingrese nuevamente.",
+          "error"
+        );
         return;
       }
 
@@ -386,7 +457,11 @@ function Evaluaciones({ usuario }) {
       const urlPdf = window.URL.createObjectURL(archivoPdf);
       window.open(urlPdf, "_blank");
     } catch (error) {
-      console.error("Error generando PDF:", error.response?.data || error.message);
+      console.error(
+        "Error generando PDF:",
+        error.response?.data || error.message
+      );
+
       mostrarMensaje("No se pudo generar el PDF de la evaluación.", "error");
     }
   };
@@ -401,6 +476,7 @@ function Evaluaciones({ usuario }) {
       ${e.severidad || ""}
       ${e.nivel_riesgo || ""}
       ${e.responsable || ""}
+      ${e.latitud && e.longitud ? "con gps geolocalizada" : "sin gps"}
       ${e.foto_url ? "con evidencia foto imagen" : "sin evidencia"}
     `.toLowerCase();
 
@@ -413,12 +489,14 @@ function Evaluaciones({ usuario }) {
   const medias = evaluaciones.filter((e) => e.nivel_riesgo === "Medio").length;
   const bajas = evaluaciones.filter((e) => e.nivel_riesgo === "Bajo").length;
   const conEvidencia = evaluaciones.filter((e) => e.foto_url).length;
+  const conGps = evaluaciones.filter((e) => e.latitud && e.longitud).length;
 
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Evaluaciones Fitosanitarias</h1>
+
       <p style={styles.subtitle}>
-        Registro, control, semáforo automático y evidencia fotográfica por finca y lote.
+        Registro, control, semáforo automático, GPS y evidencia fotográfica por finca y lote.
       </p>
 
       {usuario && (
@@ -476,8 +554,12 @@ function Evaluaciones({ usuario }) {
           <p style={styles.cardLabel}>Con evidencia</p>
           <h2 style={{ ...styles.cardNumber, color: "#2563eb" }}>{conEvidencia}</h2>
         </div>
-      </div>
 
+        <div style={styles.card}>
+          <p style={styles.cardLabel}>Con GPS</p>
+          <h2 style={{ ...styles.cardNumber, color: "#15803d" }}>{conGps}</h2>
+        </div>
+      </div>
       {puedeCrearEditar && (
         <div style={styles.panel}>
           <h2 style={styles.panelTitle}>
@@ -570,6 +652,35 @@ function Evaluaciones({ usuario }) {
               onChange={handleChange}
             />
 
+            <input
+              style={styles.input}
+              name="latitud"
+              type="number"
+              step="0.0000001"
+              placeholder="Latitud GPS evaluación"
+              value={form.latitud}
+              onChange={handleChange}
+            />
+
+            <input
+              style={styles.input}
+              name="longitud"
+              type="number"
+              step="0.0000001"
+              placeholder="Longitud GPS evaluación"
+              value={form.longitud}
+              onChange={handleChange}
+            />
+
+            <button
+              type="button"
+              style={styles.gpsButton}
+              onClick={obtenerUbicacionActual}
+              disabled={loading}
+            >
+              📍 Usar GPS actual
+            </button>
+
             <textarea
               style={styles.textarea}
               name="observaciones"
@@ -580,6 +691,7 @@ function Evaluaciones({ usuario }) {
 
             <div style={styles.fileBox}>
               <label style={styles.fileLabel}>Evidencia fotográfica</label>
+
               <input
                 id="foto-evaluacion"
                 style={styles.fileInput}
@@ -587,6 +699,7 @@ function Evaluaciones({ usuario }) {
                 accept="image/png,image/jpeg,image/jpg,image/webp"
                 onChange={handleFotoChange}
               />
+
               <span style={styles.fileHelp}>
                 Formatos permitidos: JPG, PNG o WEBP. Máximo 5 MB.
               </span>
@@ -650,7 +763,7 @@ function Evaluaciones({ usuario }) {
 
           <input
             style={styles.search}
-            placeholder="Buscar finca, lote, plaga, severidad, responsable o evidencia..."
+            placeholder="Buscar finca, lote, plaga, severidad, responsable, GPS o evidencia..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -669,6 +782,7 @@ function Evaluaciones({ usuario }) {
                 <th style={styles.th}>Severidad</th>
                 <th style={styles.th}>Semáforo</th>
                 <th style={styles.th}>Responsable</th>
+                <th style={styles.th}>GPS</th>
                 <th style={styles.th}>Evidencia</th>
                 <th style={styles.th}>PDF</th>
                 {(puedeCrearEditar || puedeEliminar) && (
@@ -681,7 +795,7 @@ function Evaluaciones({ usuario }) {
               {evaluacionesFiltradas.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={puedeCrearEditar || puedeEliminar ? "12" : "11"}
+                    colSpan={puedeCrearEditar || puedeEliminar ? "13" : "12"}
                     style={styles.empty}
                   >
                     No hay evaluaciones registradas.
@@ -693,12 +807,19 @@ function Evaluaciones({ usuario }) {
                     <td style={styles.td}>
                       {e.fecha ? new Date(e.fecha).toLocaleDateString() : "-"}
                     </td>
+
                     <td style={styles.td}>{e.finca || "-"}</td>
+
                     <td style={styles.td}>{e.lote || "-"}</td>
+
                     <td style={styles.td}>{e.cultivo || "-"}</td>
+
                     <td style={styles.td}>{e.plaga_enfermedad || "-"}</td>
+
                     <td style={styles.td}>{e.incidencia}%</td>
+
                     <td style={styles.td}>{e.severidad}</td>
+
                     <td style={styles.td}>
                       <span
                         style={{
@@ -709,7 +830,23 @@ function Evaluaciones({ usuario }) {
                         {e.nivel_riesgo}
                       </span>
                     </td>
+
                     <td style={styles.td}>{e.responsable || "-"}</td>
+
+                    <td style={styles.td}>
+                      {e.latitud && e.longitud ? (
+                        <a
+                          href={`https://www.google.com/maps?q=${e.latitud},${e.longitud}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={styles.gpsLink}
+                        >
+                          Ver GPS
+                        </a>
+                      ) : (
+                        <span style={styles.noGps}>Sin GPS</span>
+                      )}
+                    </td>
 
                     <td style={styles.td}>
                       {e.foto_url ? (
@@ -774,7 +911,6 @@ function Evaluaciones({ usuario }) {
     </div>
   );
 }
-
 const styles = {
   container: {
     padding: "28px",
@@ -888,6 +1024,34 @@ const styles = {
     resize: "vertical",
     minHeight: "45px",
   },
+  gpsButton: {
+    padding: "12px 16px",
+    borderRadius: "12px",
+    border: "none",
+    background: "#0f766e",
+    color: "#ffffff",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+  gpsLink: {
+    padding: "7px 12px",
+    borderRadius: "10px",
+    background: "#ccfbf1",
+    color: "#0f766e",
+    textDecoration: "none",
+    fontWeight: "700",
+    fontSize: "13px",
+    display: "inline-block",
+  },
+  noGps: {
+    padding: "7px 12px",
+    borderRadius: "10px",
+    background: "#f1f5f9",
+    color: "#64748b",
+    fontWeight: "700",
+    fontSize: "13px",
+    display: "inline-block",
+  },
   fileBox: {
     padding: "12px 14px",
     borderRadius: "12px",
@@ -974,6 +1138,7 @@ const styles = {
     borderBottom: "1px solid #e2e8f0",
     color: "#334155",
     fontSize: "14px",
+    whiteSpace: "nowrap",
   },
   badge: {
     padding: "6px 12px",
