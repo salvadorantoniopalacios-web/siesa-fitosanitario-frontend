@@ -27,6 +27,7 @@ function CambiarCentro({ finca }) {
 function MapaFincas() {
   const [fincas, setFincas] = useState([]);
   const [lotes, setLotes] = useState([]);
+  const [alertas, setAlertas] = useState([]);
   const [fincaSeleccionada, setFincaSeleccionada] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [tipoMapa, setTipoMapa] = useState("satelital");
@@ -35,7 +36,51 @@ function MapaFincas() {
     if (riesgo === "Crítico") return "#dc2626";
     if (riesgo === "Alto") return "#ea580c";
     if (riesgo === "Medio") return "#ca8a04";
-    return "#16a34a";
+    if (riesgo === "Bajo") return "#16a34a";
+    return "#64748b";
+  };
+
+  const obtenerRiesgoPrioritario = (riesgos) => {
+    if (riesgos.includes("Crítico")) return "Crítico";
+    if (riesgos.includes("Alto")) return "Alto";
+    if (riesgos.includes("Medio")) return "Medio";
+    if (riesgos.includes("Bajo")) return "Bajo";
+    return "Sin alerta";
+  };
+
+  const normalizarTexto = (valor) => {
+    return String(valor || "")
+      .trim()
+      .toLowerCase();
+  };
+
+  const obtenerAlertasDelLote = (lote) => {
+    return alertas.filter((alerta) => {
+      const mismoId =
+        Number(alerta.lot_id || alerta.lote_id || alerta.id_lote) ===
+        Number(lote.id);
+
+      const mismoCodigo =
+        normalizarTexto(alerta.lote || alerta.codigo_lote || alerta.lote_codigo) ===
+        normalizarTexto(lote.codigo);
+
+      const mismaFinca =
+        !alerta.finca_nombre ||
+        normalizarTexto(alerta.finca_nombre) ===
+          normalizarTexto(lote.finca_nombre);
+
+      return (mismoId || mismoCodigo) && mismaFinca;
+    });
+  };
+
+  const obtenerRiesgoLote = (lote) => {
+    const alertasLote = obtenerAlertasDelLote(lote);
+
+    const riesgos = alertasLote
+      .map((alerta) => alerta.nivel_alerta || alerta.nivel_riesgo || alerta.nivel)
+      .filter(Boolean);
+
+    return obtenerRiesgoPrioritario(riesgos);
   };
 
   const crearIconoRiesgo = (riesgo) => {
@@ -63,23 +108,27 @@ function MapaFincas() {
     try {
       setCargando(true);
 
-      const [resFincas, resLotes] = await Promise.all([
+      const [resFincas, resLotes, resAlertas] = await Promise.all([
         axios.get(`${API_URL}/farms`),
         axios.get(`${API_URL}/lots`),
+        axios.get(`${API_URL}/alerts`),
       ]);
 
       const fincasData = Array.isArray(resFincas.data) ? resFincas.data : [];
       const lotesData = Array.isArray(resLotes.data) ? resLotes.data : [];
+      const alertasData = Array.isArray(resAlertas.data) ? resAlertas.data : [];
 
       const fincasConGps = fincasData.filter((f) => f.latitud && f.longitud);
 
       setFincas(fincasConGps);
       setLotes(lotesData);
+      setAlertas(alertasData);
       setFincaSeleccionada(fincasConGps[0] || null);
     } catch (error) {
       console.error("Error cargando mapa de fincas:", error);
       setFincas([]);
       setLotes([]);
+      setAlertas([]);
     } finally {
       setCargando(false);
     }
@@ -262,34 +311,53 @@ function MapaFincas() {
 
                 <TileLayer attribution={attribution} url={urlMapa} />
 
-                {lotesFinca.map((lote) => (
-                  <Marker
-                    key={`lote-${lote.id}`}
-                    position={[Number(lote.latitud), Number(lote.longitud)]}
-                    icon={crearIconoRiesgo("Bajo")}
-                  >
-                    <Popup>
-                      <div style={{ minWidth: "220px" }}>
-                        <strong>Lote: {lote.codigo}</strong>
-                        <br />
-                        <br />
-                        <strong>Finca:</strong> {lote.finca_nombre || "-"}
-                        <br />
-                        <strong>Cultivo:</strong> {lote.cultivo || "-"}
-                        <br />
-                        <strong>Variedad:</strong> {lote.variedad || "-"}
-                        <br />
-                        <strong>Área:</strong> {lote.area_hectareas || "-"} ha
-                        <br />
-                        <strong>Estado:</strong> {lote.estado || "-"}
-                        <br />
-                        <strong>GPS:</strong>
-                        <br />
-                        {lote.latitud}, {lote.longitud}
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+                {lotesFinca.map((lote) => {
+                  const riesgoLote = obtenerRiesgoLote(lote);
+                  const alertasLote = obtenerAlertasDelLote(lote);
+
+                  return (
+                    <Marker
+                      key={`lote-${lote.id}`}
+                      position={[Number(lote.latitud), Number(lote.longitud)]}
+                      icon={crearIconoRiesgo(riesgoLote)}
+                    >
+                      <Popup>
+                        <div style={{ minWidth: "240px" }}>
+                          <strong>Lote: {lote.codigo}</strong>
+                          <br />
+                          <br />
+
+                          <strong>Riesgo:</strong>{" "}
+                          <span
+                            style={{
+                              color: obtenerColorRiesgo(riesgoLote),
+                              fontWeight: "800",
+                            }}
+                          >
+                            {riesgoLote}
+                          </span>
+                          <br />
+
+                          <strong>Finca:</strong> {lote.finca_nombre || "-"}
+                          <br />
+                          <strong>Cultivo:</strong> {lote.cultivo || "-"}
+                          <br />
+                          <strong>Variedad:</strong> {lote.variedad || "-"}
+                          <br />
+                          <strong>Área:</strong> {lote.area_hectareas || "-"} ha
+                          <br />
+                          <strong>Estado:</strong> {lote.estado || "-"}
+                          <br />
+                          <strong>Alertas:</strong> {alertasLote.length}
+                          <br />
+                          <strong>GPS:</strong>
+                          <br />
+                          {lote.latitud}, {lote.longitud}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
               </MapContainer>
             </div>
           </div>
