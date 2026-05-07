@@ -26,6 +26,7 @@ function CambiarCentro({ finca }) {
 
 function MapaFincas() {
   const [fincas, setFincas] = useState([]);
+  const [lotes, setLotes] = useState([]);
   const [fincaSeleccionada, setFincaSeleccionada] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [tipoMapa, setTipoMapa] = useState("normal");
@@ -69,13 +70,25 @@ function MapaFincas() {
     try {
       setCargando(true);
 
-      const [resFincas, resAlertas] = await Promise.all([
+      const [resFincas, resAlertas, resLotes] = await Promise.all([
         axios.get(`${API_URL}/farms`),
         axios.get(`${API_URL}/alerts`),
+        axios.get(`${API_URL}/lots`),
       ]);
 
-      const fincasData = Array.isArray(resFincas.data) ? resFincas.data : [];
-      const alertasData = Array.isArray(resAlertas.data) ? resAlertas.data : [];
+      const fincasData = Array.isArray(resFincas.data)
+        ? resFincas.data
+        : [];
+
+      const alertasData = Array.isArray(resAlertas.data)
+        ? resAlertas.data
+        : [];
+
+      const lotesData = Array.isArray(resLotes.data)
+        ? resLotes.data
+        : [];
+
+      setLotes(lotesData);
 
       const fincasConGps = fincasData
         .filter((f) => f.latitud && f.longitud)
@@ -96,8 +109,9 @@ function MapaFincas() {
             alertas_criticas: alertasFinca.filter(
               (a) => a.nivel_alerta === "Crítico"
             ).length,
-            alertas_altas: alertasFinca.filter((a) => a.nivel_alerta === "Alto")
-              .length,
+            alertas_altas: alertasFinca.filter(
+              (a) => a.nivel_alerta === "Alto"
+            ).length,
           };
         });
 
@@ -106,6 +120,7 @@ function MapaFincas() {
     } catch (error) {
       console.error("Error cargando mapa de fincas:", error);
       setFincas([]);
+      setLotes([]);
     } finally {
       setCargando(false);
     }
@@ -134,6 +149,13 @@ function MapaFincas() {
     (f) => f.nivel_riesgo_finca === "Alto"
   ).length;
 
+  const lotesFinca = lotes.filter(
+    (l) =>
+      Number(l.farm_id) === Number(fincaSeleccionada?.id) &&
+      l.latitud &&
+      l.longitud
+  );
+
   const urlMapa =
     tipoMapa === "satelital"
       ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -147,8 +169,9 @@ function MapaFincas() {
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Mapa de fincas</h1>
+
       <p style={styles.subtitle}>
-        Visualización interactiva con vista satelital y pines por nivel de riesgo.
+        Visualización interactiva con vista satelital y lotes GPS agrícolas.
       </p>
 
       <div style={styles.cards}>
@@ -158,16 +181,14 @@ function MapaFincas() {
         </div>
 
         <div style={styles.card}>
-          <p style={styles.cardLabel}>Fincas críticas</p>
-          <h2 style={{ ...styles.cardNumber, color: "#dc2626" }}>
-            {fincasCriticas}
-          </h2>
+          <p style={styles.cardLabel}>Lotes GPS</p>
+          <h2 style={styles.cardNumber}>{lotesFinca.length}</h2>
         </div>
 
         <div style={styles.card}>
-          <p style={styles.cardLabel}>Fincas altas</p>
-          <h2 style={{ ...styles.cardNumber, color: "#ea580c" }}>
-            {fincasAltas}
+          <p style={styles.cardLabel}>Fincas críticas</p>
+          <h2 style={{ ...styles.cardNumber, color: "#dc2626" }}>
+            {fincasCriticas}
           </h2>
         </div>
 
@@ -180,26 +201,15 @@ function MapaFincas() {
       </div>
 
       {cargando ? (
-        <div style={styles.empty}>Cargando mapa de fincas...</div>
+        <div style={styles.empty}>Cargando mapa...</div>
       ) : fincas.length === 0 ? (
         <div style={styles.empty}>
-          No hay fincas con coordenadas GPS registradas.
+          No hay fincas registradas con GPS.
         </div>
       ) : (
         <div style={styles.grid}>
           <div style={styles.panel}>
-            <h2 style={styles.panelTitle}>Fincas con GPS</h2>
-
-            <div style={styles.legend}>
-              <span style={{ ...styles.legendDot, background: "#16a34a" }} />
-              Bajo
-              <span style={{ ...styles.legendDot, background: "#ca8a04" }} />
-              Medio
-              <span style={{ ...styles.legendDot, background: "#ea580c" }} />
-              Alto
-              <span style={{ ...styles.legendDot, background: "#dc2626" }} />
-              Crítico
-            </div>
+            <h2 style={styles.panelTitle}>Fincas</h2>
 
             {fincas.map((finca) => (
               <div
@@ -207,18 +217,25 @@ function MapaFincas() {
                 style={{
                   ...styles.fincaItem,
                   borderColor:
-                    fincaSeleccionada?.id === finca.id ? "#15803d" : "#e2e8f0",
+                    fincaSeleccionada?.id === finca.id
+                      ? "#15803d"
+                      : "#e2e8f0",
                   background:
-                    fincaSeleccionada?.id === finca.id ? "#ecfdf5" : "#ffffff",
+                    fincaSeleccionada?.id === finca.id
+                      ? "#ecfdf5"
+                      : "#ffffff",
                 }}
                 onClick={() => setFincaSeleccionada(finca)}
               >
                 <div style={styles.fincaTop}>
                   <strong>{finca.nombre}</strong>
+
                   <span
                     style={{
                       ...styles.riskBadge,
-                      background: obtenerColorRiesgo(finca.nivel_riesgo_finca),
+                      background: obtenerColorRiesgo(
+                        finca.nivel_riesgo_finca
+                      ),
                     }}
                   >
                     {finca.nivel_riesgo_finca}
@@ -226,11 +243,22 @@ function MapaFincas() {
                 </div>
 
                 <span>{finca.ubicacion}</span>
+
                 <small>
                   GPS: {finca.latitud}, {finca.longitud}
                 </small>
-                <small>Cultivo: {finca.cultivo_principal || "-"}</small>
-                <small>Alertas: {finca.total_alertas}</small>
+
+                <small>
+                  Lotes GPS:{" "}
+                  {
+                    lotes.filter(
+                      (l) =>
+                        Number(l.farm_id) === Number(finca.id) &&
+                        l.latitud &&
+                        l.longitud
+                    ).length
+                  }
+                </small>
               </div>
             ))}
           </div>
@@ -241,6 +269,7 @@ function MapaFincas() {
                 <h2 style={styles.panelTitle}>
                   {fincaSeleccionada?.nombre || "Mapa"}
                 </h2>
+
                 <p style={styles.mapSubtitle}>
                   {fincaSeleccionada?.ubicacion || ""}
                 </p>
@@ -251,7 +280,8 @@ function MapaFincas() {
                   type="button"
                   style={{
                     ...styles.mapTypeButton,
-                    background: tipoMapa === "normal" ? "#15803d" : "#64748b",
+                    background:
+                      tipoMapa === "normal" ? "#15803d" : "#64748b",
                   }}
                   onClick={() => setTipoMapa("normal")}
                 >
@@ -263,7 +293,9 @@ function MapaFincas() {
                   style={{
                     ...styles.mapTypeButton,
                     background:
-                      tipoMapa === "satelital" ? "#15803d" : "#64748b",
+                      tipoMapa === "satelital"
+                        ? "#15803d"
+                        : "#64748b",
                   }}
                   onClick={() => setTipoMapa("satelital")}
                 >
@@ -274,7 +306,9 @@ function MapaFincas() {
                   <button
                     type="button"
                     style={styles.mapButton}
-                    onClick={() => abrirGoogleMaps(fincaSeleccionada)}
+                    onClick={() =>
+                      abrirGoogleMaps(fincaSeleccionada)
+                    }
                   >
                     Google Maps
                   </button>
@@ -291,35 +325,92 @@ function MapaFincas() {
               >
                 <CambiarCentro finca={fincaSeleccionada} />
 
-                <TileLayer attribution={attribution} url={urlMapa} />
+                <TileLayer
+                  attribution={attribution}
+                  url={urlMapa}
+                />
 
                 {fincas.map((finca) => (
                   <Marker
                     key={finca.id}
-                    position={[Number(finca.latitud), Number(finca.longitud)]}
-                    icon={crearIconoRiesgo(finca.nivel_riesgo_finca)}
+                    position={[
+                      Number(finca.latitud),
+                      Number(finca.longitud),
+                    ]}
+                    icon={crearIconoRiesgo(
+                      finca.nivel_riesgo_finca
+                    )}
                     eventHandlers={{
-                      click: () => setFincaSeleccionada(finca),
+                      click: () =>
+                        setFincaSeleccionada(finca),
                     }}
                   >
                     <Popup>
-                      <div style={{ minWidth: "190px" }}>
+                      <div style={{ minWidth: "200px" }}>
                         <strong>{finca.nombre}</strong>
+
                         <br />
                         {finca.ubicacion}
+
                         <br />
                         <br />
-                        <strong>Riesgo:</strong> {finca.nivel_riesgo_finca}
+
+                        <strong>Riesgo:</strong>{" "}
+                        {finca.nivel_riesgo_finca}
+
                         <br />
+
+                        <strong>GPS:</strong>
+
+                        <br />
+                        {finca.latitud}, {finca.longitud}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+
+                {lotesFinca.map((lote) => (
+                  <Marker
+                    key={`lote-${lote.id}`}
+                    position={[
+                      Number(lote.latitud),
+                      Number(lote.longitud),
+                    ]}
+                    icon={crearIconoRiesgo("Medio")}
+                  >
+                    <Popup>
+                      <div style={{ minWidth: "220px" }}>
+                        <strong>
+                          Lote: {lote.codigo}
+                        </strong>
+
+                        <br />
+                        <br />
+
                         <strong>Cultivo:</strong>{" "}
-                        {finca.cultivo_principal || "-"}
+                        {lote.cultivo || "-"}
+
                         <br />
-                        <strong>Área:</strong> {finca.area_hectareas || "-"} ha
+
+                        <strong>Variedad:</strong>{" "}
+                        {lote.variedad || "-"}
+
                         <br />
-                        <strong>Alertas:</strong> {finca.total_alertas}
+
+                        <strong>Área:</strong>{" "}
+                        {lote.area_hectareas || "-"} ha
+
                         <br />
-                        <strong>GPS:</strong> {finca.latitud},{" "}
-                        {finca.longitud}
+
+                        <strong>Estado:</strong>{" "}
+                        {lote.estado || "-"}
+
+                        <br />
+
+                        <strong>GPS:</strong>
+
+                        <br />
+                        {lote.latitud}, {lote.longitud}
                       </div>
                     </Popup>
                   </Marker>
@@ -339,22 +430,26 @@ const styles = {
     background: "#f8fafc",
     minHeight: "100vh",
   },
+
   title: {
     fontSize: "32px",
     fontWeight: "800",
     color: "#0f172a",
     marginBottom: "4px",
   },
+
   subtitle: {
     color: "#64748b",
     marginBottom: "24px",
   },
+
   cards: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
     gap: "18px",
     marginBottom: "24px",
   },
+
   card: {
     background: "#ffffff",
     borderRadius: "18px",
@@ -362,25 +457,30 @@ const styles = {
     boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
     border: "1px solid #e2e8f0",
   },
+
   cardLabel: {
     color: "#64748b",
     margin: 0,
   },
+
   cardNumber: {
     fontSize: "32px",
     margin: "8px 0 0",
     color: "#2563eb",
   },
+
   cardText: {
     fontSize: "22px",
     margin: "8px 0 0",
     color: "#0f172a",
   },
+
   grid: {
     display: "grid",
     gridTemplateColumns: "minmax(280px, 360px) 1fr",
     gap: "20px",
   },
+
   panel: {
     background: "#ffffff",
     borderRadius: "18px",
@@ -388,6 +488,7 @@ const styles = {
     boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
     border: "1px solid #e2e8f0",
   },
+
   panelTitle: {
     fontSize: "20px",
     fontWeight: "700",
@@ -395,21 +496,7 @@ const styles = {
     marginBottom: "14px",
     color: "#0f172a",
   },
-  legend: {
-    display: "flex",
-    alignItems: "center",
-    gap: "7px",
-    flexWrap: "wrap",
-    color: "#475569",
-    fontSize: "13px",
-    marginBottom: "14px",
-  },
-  legendDot: {
-    width: "11px",
-    height: "11px",
-    borderRadius: "999px",
-    display: "inline-block",
-  },
+
   fincaItem: {
     display: "flex",
     flexDirection: "column",
@@ -421,12 +508,14 @@ const styles = {
     cursor: "pointer",
     color: "#334155",
   },
+
   fincaTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     gap: "8px",
   },
+
   riskBadge: {
     color: "#ffffff",
     borderRadius: "999px",
@@ -434,6 +523,7 @@ const styles = {
     fontSize: "12px",
     fontWeight: "800",
   },
+
   mapHeader: {
     display: "flex",
     justifyContent: "space-between",
@@ -442,15 +532,18 @@ const styles = {
     alignItems: "center",
     marginBottom: "14px",
   },
+
   mapSubtitle: {
     margin: 0,
     color: "#64748b",
   },
+
   mapActions: {
     display: "flex",
     gap: "8px",
     flexWrap: "wrap",
   },
+
   mapTypeButton: {
     padding: "10px 14px",
     borderRadius: "12px",
@@ -459,6 +552,7 @@ const styles = {
     fontWeight: "700",
     cursor: "pointer",
   },
+
   mapButton: {
     padding: "10px 14px",
     borderRadius: "12px",
@@ -468,6 +562,7 @@ const styles = {
     fontWeight: "700",
     cursor: "pointer",
   },
+
   mapBox: {
     width: "100%",
     height: "540px",
@@ -476,10 +571,12 @@ const styles = {
     border: "1px solid #cbd5e1",
     background: "#f1f5f9",
   },
+
   leafletMap: {
     width: "100%",
     height: "100%",
   },
+
   empty: {
     background: "#ffffff",
     borderRadius: "18px",
