@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../api/axiosConfig.js";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
@@ -44,9 +44,12 @@ function Fincas({ usuario }) {
       const res = await axios.get(`${API_URL}/farms`);
       setFincas(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error("Error obteniendo fincas:", error);
+      console.error("Error obteniendo fincas:", error.response?.data || error.message);
       setFincas([]);
-      mostrarMensaje("No se pudieron cargar las fincas.", "error");
+      mostrarMensaje(
+        error.response?.data?.mensaje || "No se pudieron cargar las fincas.",
+        "error"
+      );
     }
   };
 
@@ -187,7 +190,7 @@ function Fincas({ usuario }) {
       await axios.post(`${API_URL}/farms`, prepararDataFinca());
 
       limpiarFormulario();
-      obtenerFincas();
+      await obtenerFincas();
       mostrarMensaje("Finca creada correctamente.", "ok");
     } catch (error) {
       console.error("Error creando finca:", error.response?.data || error.message);
@@ -235,7 +238,7 @@ function Fincas({ usuario }) {
       await axios.put(`${API_URL}/farms/${editandoId}`, prepararDataFinca());
 
       limpiarFormulario();
-      obtenerFincas();
+      await obtenerFincas();
       mostrarMensaje("Finca actualizada correctamente.", "ok");
     } catch (error) {
       console.error("Error actualizando finca:", error.response?.data || error.message);
@@ -265,7 +268,7 @@ function Fincas({ usuario }) {
 
       await axios.delete(`${API_URL}/farms/${id}`);
 
-      obtenerFincas();
+      await obtenerFincas();
       mostrarMensaje("Finca eliminada correctamente.", "ok");
     } catch (error) {
       console.error("Error eliminando finca:", error.response?.data || error.message);

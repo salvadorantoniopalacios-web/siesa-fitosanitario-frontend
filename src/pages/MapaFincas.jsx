@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../api/axiosConfig.js";
 import {
   MapContainer,
   TileLayer,
@@ -49,9 +49,7 @@ function MapaFincas() {
   };
 
   const normalizarTexto = (valor) => {
-    return String(valor || "")
-      .trim()
-      .toLowerCase();
+    return String(valor || "").trim().toLowerCase();
   };
 
   const obtenerAlertasDelLote = (lote) => {
@@ -125,7 +123,7 @@ function MapaFincas() {
       setAlertas(alertasData);
       setFincaSeleccionada(fincasConGps[0] || null);
     } catch (error) {
-      console.error("Error cargando mapa de fincas:", error);
+      console.error("Error cargando mapa de fincas:", error.response?.data || error.message);
       setFincas([]);
       setLotes([]);
       setAlertas([]);
