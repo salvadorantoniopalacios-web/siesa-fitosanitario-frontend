@@ -18,10 +18,13 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
   }, []);
 
   const cerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    window.location.reload();
-  };
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("usuario");
+  localStorage.removeItem("token");
+  localStorage.removeItem("usuario");
+
+  window.location.reload();
+};
 
   const cambiarVista = (vista) => {
     setVista(vista);
