@@ -43,7 +43,9 @@ function Usuarios({ usuario }) {
 
   const cargarUsuarios = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token =
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("token");
 
       const res = await axios.get(`${API_URL}/users`, {
         headers: {
@@ -130,7 +132,9 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
+      const token =
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("token");
 
       if (editandoId) {
         await axios.put(
@@ -202,7 +206,9 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
+      const token =
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("token");
 
       await axios.patch(
         `${API_URL}/users/${u.id}/toggle-status`,
@@ -246,7 +252,9 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
+      const token =
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("token");
 
       await axios.delete(`${API_URL}/users/${id}`, {
         headers: {
