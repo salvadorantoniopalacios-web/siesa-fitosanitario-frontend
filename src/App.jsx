@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import "./api/axiosConfig.js";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 
 function App() {
   const [usuario, setUsuario] = useState(() => {
     const usuarioSesion =
-      sessionStorage.getItem("usuario") || localStorage.getItem("usuario");
+      sessionStorage.getItem("usuario") ||
+      localStorage.getItem("usuario");
 
     if (!usuarioSesion) {
       return null;
@@ -24,13 +25,11 @@ function App() {
   });
 
   useEffect(() => {
-    const token =
-      sessionStorage.getItem("token") || localStorage.getItem("token");
-
-    if (token) {
-      axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common.Authorization;
+    if (!usuario) {
+      sessionStorage.removeItem("usuario");
+      sessionStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("token");
     }
   }, [usuario]);
 
