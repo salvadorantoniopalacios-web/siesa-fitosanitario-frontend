@@ -14,12 +14,15 @@ function Login({ setUsuario }) {
         `${import.meta.env.VITE_API_URL}/api/auth/login`,
         {
           email,
-          password
+          password,
         }
       );
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("usuario", JSON.stringify(res.data.usuario));
+      sessionStorage.setItem("token", res.data.token);
+      sessionStorage.setItem("usuario", JSON.stringify(res.data.usuario));
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
 
       setUsuario(res.data.usuario);
     } catch (error) {
@@ -81,7 +84,7 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
-    fontFamily: "Arial, sans-serif"
+    fontFamily: "Arial, sans-serif",
   },
 
   overlay: {
@@ -89,7 +92,7 @@ const styles = {
     width: "100%",
     height: "100%",
     background:
-      "linear-gradient(rgba(0, 50, 20, 0.25), rgba(0, 0, 0, 0.35))"
+      "linear-gradient(rgba(0, 50, 20, 0.25), rgba(0, 0, 0, 0.35))",
   },
 
   card: {
@@ -100,25 +103,25 @@ const styles = {
     width: "350px",
     textAlign: "center",
     zIndex: 1,
-    boxShadow: "0 15px 40px rgba(0,0,0,0.25)"
+    boxShadow: "0 15px 40px rgba(0,0,0,0.25)",
   },
 
   logoCircle: {
     fontSize: "42px",
-    marginBottom: "5px"
+    marginBottom: "5px",
   },
 
   title: {
     margin: 0,
     color: "#0f7a35",
     fontSize: "30px",
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
 
   subtitle: {
     marginBottom: "25px",
     fontSize: "14px",
-    color: "#333"
+    color: "#333",
   },
 
   input: {
@@ -127,7 +130,7 @@ const styles = {
     margin: "9px 0",
     borderRadius: "6px",
     border: "1px solid #d1d5db",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
   },
 
   button: {
@@ -139,25 +142,25 @@ const styles = {
     border: "none",
     borderRadius: "6px",
     cursor: "pointer",
-    fontWeight: "bold"
+    fontWeight: "bold",
   },
 
   forgot: {
     fontSize: "12px",
     color: "#138a3d",
-    marginTop: "15px"
+    marginTop: "15px",
   },
 
   mensaje: {
     color: "#b91c1c",
-    fontSize: "13px"
+    fontSize: "13px",
   },
 
   footer: {
     marginTop: "20px",
     fontSize: "11px",
-    color: "#777"
-  }
+    color: "#777",
+  },
 };
 
 export default Login;
