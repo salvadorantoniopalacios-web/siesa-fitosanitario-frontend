@@ -11,6 +11,7 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
     };
 
     window.addEventListener("resize", detectarPantalla);
+    detectarPantalla();
 
     return () => {
       window.removeEventListener("resize", detectarPantalla);
@@ -18,13 +19,18 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
   }, []);
 
   const cerrarSesion = () => {
-  sessionStorage.removeItem("token");
-  sessionStorage.removeItem("usuario");
-  localStorage.removeItem("token");
-  localStorage.removeItem("usuario");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("usuario");
+    sessionStorage.removeItem("siesa_token");
+    sessionStorage.removeItem("siesa_usuario");
 
-  window.location.reload();
-};
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("siesa_token");
+    localStorage.removeItem("siesa_usuario");
+
+    window.location.reload();
+  };
 
   const cambiarVista = (vista) => {
     setVista(vista);
@@ -32,7 +38,21 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
     if (esMovil) {
       setMenuAbierto(false);
     }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
+
+  const opcionMenu = (emoji, texto, vista, extra = null) => (
+    <button type="button" style={styles.menuButton} onClick={() => cambiarVista(vista)}>
+      <span>
+        {emoji} {texto}
+      </span>
+      {extra}
+    </button>
+  );
 
   return (
     <div style={styles.container}>
@@ -48,8 +68,10 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
 
           <strong style={styles.mobileLogo}>🌿 SIESA</strong>
 
-          {alertasCriticas > 0 && (
+          {alertasCriticas > 0 ? (
             <span style={styles.mobileBadge}>{alertasCriticas}</span>
+          ) : (
+            <span style={styles.mobileStatus}>Online</span>
           )}
         </header>
       )}
@@ -65,50 +87,44 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
           ...(esMovil && menuAbierto ? styles.sidebarMovilAbierto : {}),
         }}
       >
+        {esMovil && (
+          <button
+            type="button"
+            style={styles.closeButton}
+            onClick={() => setMenuAbierto(false)}
+          >
+            ✕
+          </button>
+        )}
+
         <h2 style={styles.logo}>🌿 SIESA</h2>
 
         {usuario && (
           <div style={styles.userBox}>
-            <strong>{usuario.nombre || "Usuario"}</strong>
+            <strong>{usuario.nombre || usuario.email || "Usuario"}</strong>
             <span>{usuario.rol || "Sin rol"}</span>
           </div>
         )}
 
-        <div style={styles.menu} onClick={() => cambiarVista("inicio")}>
-          🏠 Inicio
-        </div>
+        <nav style={styles.nav}>
+          {opcionMenu("🏠", "Inicio", "inicio")}
+          {opcionMenu("🌱", "Fincas", "fincas")}
+          {opcionMenu("🧾", "Lotes", "lotes")}
+          {opcionMenu("📊", "Evaluaciones", "evaluaciones")}
 
-        <div style={styles.menu} onClick={() => cambiarVista("fincas")}>
-          🌱 Fincas
-        </div>
-
-        <div style={styles.menu} onClick={() => cambiarVista("lotes")}>
-          🧾 Lotes
-        </div>
-
-        <div style={styles.menu} onClick={() => cambiarVista("evaluaciones")}>
-          📊 Evaluaciones
-        </div>
-
-        <div style={styles.menu} onClick={() => cambiarVista("alertas")}>
-          <span>🚨 Alertas</span>
-
-          {alertasCriticas > 0 && (
-            <span style={styles.badge}>{alertasCriticas}</span>
+          {opcionMenu(
+            "🚨",
+            "Alertas",
+            "alertas",
+            alertasCriticas > 0 && <span style={styles.badge}>{alertasCriticas}</span>
           )}
-        </div>
 
-        <div style={styles.menu} onClick={() => cambiarVista("mapa")}>
-          🗺️ Mapa
-        </div>
+          {opcionMenu("🗺️", "Mapa", "mapa")}
 
-        {esAdmin && (
-          <div style={styles.menu} onClick={() => cambiarVista("usuarios")}>
-            👥 Usuarios
-          </div>
-        )}
+          {esAdmin && opcionMenu("👥", "Usuarios", "usuarios")}
+        </nav>
 
-        <button style={styles.logoutButton} onClick={cerrarSesion}>
+        <button type="button" style={styles.logoutButton} onClick={cerrarSesion}>
           🚪 Cerrar sesión
         </button>
       </aside>
@@ -129,14 +145,15 @@ const styles = {
   container: {
     display: "flex",
     minHeight: "100vh",
-    fontFamily: "Arial",
+    fontFamily: "Arial, sans-serif",
     background: "#f4f6f5",
   },
+
   sidebar: {
     width: "240px",
     minWidth: "240px",
     background: "linear-gradient(#064e2b, #022c22)",
-    color: "#fff",
+    color: "#ffffff",
     padding: "20px",
     display: "flex",
     flexDirection: "column",
@@ -145,60 +162,105 @@ const styles = {
     top: 0,
     boxSizing: "border-box",
     zIndex: 20,
+    boxShadow: "8px 0 24px rgba(15,23,42,0.16)",
   },
+
   sidebarMovil: {
     position: "fixed",
     left: 0,
     top: 0,
-    transform: "translateX(-100%)",
+    transform: "translateX(-105%)",
     transition: "transform 0.25s ease",
     height: "100vh",
-    width: "260px",
-    minWidth: "260px",
+    width: "285px",
+    minWidth: "285px",
+    zIndex: 40,
+    borderTopRightRadius: "20px",
+    borderBottomRightRadius: "20px",
   },
+
   sidebarMovilAbierto: {
     transform: "translateX(0)",
   },
-  logo: {
-    marginBottom: "20px",
+
+  closeButton: {
+    position: "absolute",
+    top: "14px",
+    right: "14px",
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.25)",
+    background: "rgba(255,255,255,0.12)",
+    color: "#ffffff",
+    fontSize: "18px",
+    fontWeight: "800",
+    cursor: "pointer",
   },
+
+  logo: {
+    margin: "8px 0 20px",
+    fontSize: "24px",
+    fontWeight: "900",
+    letterSpacing: "0.5px",
+  },
+
   userBox: {
     background: "rgba(255,255,255,0.12)",
-    padding: "12px",
-    borderRadius: "10px",
-    marginBottom: "20px",
+    padding: "14px",
+    borderRadius: "14px",
+    marginBottom: "18px",
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
+    gap: "5px",
     fontSize: "13px",
+    border: "1px solid rgba(255,255,255,0.12)",
   },
-  menu: {
-    padding: "12px",
-    marginBottom: "8px",
-    borderRadius: "8px",
+
+  nav: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+
+  menuButton: {
+    width: "100%",
+    padding: "14px 13px",
+    borderRadius: "12px",
+    border: "none",
+    background: "transparent",
+    color: "#ffffff",
     cursor: "pointer",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    fontSize: "15px",
+    fontWeight: "700",
+    textAlign: "left",
   },
+
   badge: {
     background: "#dc2626",
-    color: "#fff",
+    color: "#ffffff",
     borderRadius: "999px",
-    padding: "3px 8px",
+    padding: "4px 9px",
     fontSize: "12px",
-    fontWeight: "700",
+    fontWeight: "800",
   },
+
   logoutButton: {
     marginTop: "auto",
-    padding: "12px",
-    borderRadius: "8px",
+    padding: "14px",
+    borderRadius: "12px",
     border: "none",
     background: "#dc2626",
     color: "#ffffff",
-    fontWeight: "700",
+    fontWeight: "800",
     cursor: "pointer",
+    fontSize: "14px",
+    boxShadow: "0 8px 18px rgba(220,38,38,0.28)",
   },
+
   main: {
     flex: 1,
     background: "#f4f6f5",
@@ -207,9 +269,13 @@ const styles = {
     boxSizing: "border-box",
     width: "100%",
   },
+
   mainMovil: {
-    padding: "78px 14px 18px",
+    padding: "74px 10px 18px",
+    width: "100%",
+    overflowX: "hidden",
   },
+
   mobileHeader: {
     position: "fixed",
     top: 0,
@@ -226,33 +292,47 @@ const styles = {
     boxShadow: "0 8px 18px rgba(15,23,42,0.18)",
     boxSizing: "border-box",
   },
+
   mobileMenuButton: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
+    width: "42px",
+    height: "42px",
+    borderRadius: "12px",
     border: "1px solid rgba(255,255,255,0.25)",
     background: "rgba(255,255,255,0.12)",
     color: "#ffffff",
     fontSize: "22px",
-    fontWeight: "800",
+    fontWeight: "900",
     cursor: "pointer",
   },
+
   mobileLogo: {
     fontSize: "18px",
+    fontWeight: "900",
   },
+
   mobileBadge: {
     background: "#dc2626",
     color: "#ffffff",
     borderRadius: "999px",
-    padding: "5px 10px",
+    padding: "6px 11px",
+    fontSize: "12px",
+    fontWeight: "900",
+  },
+
+  mobileStatus: {
+    background: "rgba(255,255,255,0.14)",
+    color: "#ffffff",
+    borderRadius: "999px",
+    padding: "6px 11px",
     fontSize: "12px",
     fontWeight: "800",
   },
+
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(15,23,42,0.45)",
-    zIndex: 15,
+    background: "rgba(15,23,42,0.48)",
+    zIndex: 35,
   },
 };
 
