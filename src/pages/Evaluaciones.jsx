@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../api/axiosConfig.js";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 const BACKEND_URL = import.meta.env.VITE_API_URL;
@@ -13,6 +13,14 @@ function Evaluaciones({ usuario }) {
   const [loading, setLoading] = useState(false);
   const [foto, setFoto] = useState(null);
   const [fotoActual, setFotoActual] = useState(null);
+
+  const [plagaTemporal, setPlagaTemporal] = useState({
+    plaga_enfermedad: "",
+    incidencia: "",
+    severidad: "",
+  });
+
+  const [plagasDetalle, setPlagasDetalle] = useState([]);
 
   const [mensaje, setMensaje] = useState({
     texto: "",
@@ -30,9 +38,6 @@ function Evaluaciones({ usuario }) {
     fecha: "",
     farm_id: "",
     lot_id: "",
-    plaga_enfermedad: "",
-    incidencia: "",
-    severidad: "",
     observaciones: "",
     responsable: "",
     latitud: "",
@@ -41,10 +46,10 @@ function Evaluaciones({ usuario }) {
 
   const obtenerToken = () => {
     return (
-      localStorage.getItem("token") ||
-      localStorage.getItem("siesa_token") ||
       sessionStorage.getItem("token") ||
-      sessionStorage.getItem("siesa_token")
+      sessionStorage.getItem("siesa_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("siesa_token")
     );
   };
 
@@ -166,6 +171,86 @@ function Evaluaciones({ usuario }) {
     setForm({ ...form, [name]: value });
   };
 
+  const handlePlagaTemporalChange = (e) => {
+    const { name, value } = e.target;
+    limpiarMensaje();
+
+    setPlagaTemporal({
+      ...plagaTemporal,
+      [name]: value,
+    });
+  };
+
+  const totalIncidencia = plagasDetalle.reduce((total, item) => {
+    const valor = Number(item.incidencia);
+    return total + (isNaN(valor) ? 0 : valor);
+  }, 0);
+
+  const obtenerSeveridadGlobal = () => {
+    const severidades = plagasDetalle.map((item) => item.severidad);
+
+    if (severidades.includes("Alta")) return "Alta";
+    if (severidades.includes("Media")) return "Media";
+    if (severidades.includes("Baja")) return "Baja";
+
+    return "";
+  };
+
+  const obtenerRiesgoGlobal = () => {
+    const severidadGlobal = obtenerSeveridadGlobal();
+
+    if (totalIncidencia > 50 || severidadGlobal === "Alta") return "Crítico";
+    if (totalIncidencia > 25) return "Alto";
+    if (totalIncidencia > 10 || severidadGlobal === "Media") return "Medio";
+
+    return "Bajo";
+  };
+
+  const agregarPlaga = () => {
+    limpiarMensaje();
+
+    if (
+      !plagaTemporal.plaga_enfermedad ||
+      plagaTemporal.incidencia === "" ||
+      !plagaTemporal.severidad
+    ) {
+      mostrarMensaje("Complete plaga/enfermedad, incidencia y severidad.", "error");
+      return;
+    }
+
+    if (Number(plagaTemporal.incidencia) < 0 || Number(plagaTemporal.incidencia) > 100) {
+      mostrarMensaje("La incidencia de cada plaga debe estar entre 0 y 100%.", "error");
+      return;
+    }
+
+    const nuevoTotal = totalIncidencia + Number(plagaTemporal.incidencia);
+
+    if (nuevoTotal > 100) {
+      mostrarMensaje("La suma total de incidencias no puede superar 100%.", "error");
+      return;
+    }
+
+    setPlagasDetalle([
+      ...plagasDetalle,
+      {
+        id_temp: Date.now(),
+        plaga_enfermedad: plagaTemporal.plaga_enfermedad,
+        incidencia: Number(plagaTemporal.incidencia),
+        severidad: plagaTemporal.severidad,
+      },
+    ]);
+
+    setPlagaTemporal({
+      plaga_enfermedad: "",
+      incidencia: "",
+      severidad: "",
+    });
+  };
+
+  const eliminarPlagaDetalle = (idTemp) => {
+    setPlagasDetalle(plagasDetalle.filter((item) => item.id_temp !== idTemp));
+  };
+
   const handleFotoChange = (e) => {
     limpiarMensaje();
 
@@ -205,15 +290,19 @@ function Evaluaciones({ usuario }) {
       fecha: "",
       farm_id: "",
       lot_id: "",
-      plaga_enfermedad: "",
-      incidencia: "",
-      severidad: "",
       observaciones: "",
       responsable: "",
       latitud: "",
       longitud: "",
     });
 
+    setPlagaTemporal({
+      plaga_enfermedad: "",
+      incidencia: "",
+      severidad: "",
+    });
+
+    setPlagasDetalle([]);
     setFoto(null);
     setFotoActual(null);
     setEditandoId(null);
@@ -246,30 +335,31 @@ function Evaluaciones({ usuario }) {
       return false;
     }
 
-    if (
-      !form.fecha ||
-      !form.farm_id ||
-      !form.lot_id ||
-      !form.plaga_enfermedad ||
-      form.incidencia === "" ||
-      form.incidencia === null ||
-      form.incidencia === undefined ||
-      !form.severidad
-    ) {
-      mostrarMensaje(
-        "Completa fecha, finca, lote, plaga/enfermedad, incidencia y severidad.",
-        "error"
-      );
-
+    if (!form.fecha || !form.farm_id || !form.lot_id) {
+      mostrarMensaje("Complete fecha, finca y lote.", "error");
       return false;
     }
 
-    if (Number(form.incidencia) < 0 || Number(form.incidencia) > 100) {
-      mostrarMensaje("La incidencia debe estar entre 0 y 100%.", "error");
+    if (plagasDetalle.length === 0) {
+      mostrarMensaje("Agregue al menos una plaga o enfermedad a la evaluación.", "error");
+      return false;
+    }
+
+    if (totalIncidencia < 0 || totalIncidencia > 100) {
+      mostrarMensaje("La incidencia total debe estar entre 0 y 100%.", "error");
       return false;
     }
 
     return true;
+  };
+
+  const prepararTextoPlagas = () => {
+    return plagasDetalle
+      .map(
+        (item, index) =>
+          `${index + 1}. ${item.plaga_enfermedad} (${item.incidencia}% - ${item.severidad})`
+      )
+      .join(" | ");
   };
 
   const prepararFormDataEvaluacion = () => {
@@ -278,9 +368,9 @@ function Evaluaciones({ usuario }) {
     data.append("fecha", form.fecha);
     data.append("farm_id", Number(form.farm_id));
     data.append("lot_id", Number(form.lot_id));
-    data.append("plaga_enfermedad", form.plaga_enfermedad);
-    data.append("incidencia", Number(form.incidencia));
-    data.append("severidad", form.severidad);
+    data.append("plaga_enfermedad", prepararTextoPlagas());
+    data.append("incidencia", Number(totalIncidencia));
+    data.append("severidad", obtenerSeveridadGlobal());
     data.append("observaciones", form.observaciones || "");
     data.append("responsable", form.responsable || "");
     data.append("latitud", form.latitud || "");
@@ -292,6 +382,7 @@ function Evaluaciones({ usuario }) {
 
     return data;
   };
+
   const crearEvaluacion = async (e) => {
     e.preventDefault();
 
@@ -307,7 +398,7 @@ function Evaluaciones({ usuario }) {
       });
 
       limpiarFormulario();
-      obtenerEvaluaciones();
+      await obtenerEvaluaciones();
       mostrarMensaje("Evaluación creada correctamente.", "ok");
     } catch (error) {
       console.error(
@@ -339,13 +430,25 @@ function Evaluaciones({ usuario }) {
       fecha: evaluacion.fecha ? evaluacion.fecha.substring(0, 10) : "",
       farm_id: evaluacion.farm_id || "",
       lot_id: evaluacion.lot_id || "",
-      plaga_enfermedad: evaluacion.plaga_enfermedad || "",
-      incidencia: evaluacion.incidencia || "",
-      severidad: evaluacion.severidad || "",
       observaciones: evaluacion.observaciones || "",
       responsable: evaluacion.responsable || "",
       latitud: evaluacion.latitud || "",
       longitud: evaluacion.longitud || "",
+    });
+
+    setPlagasDetalle([
+      {
+        id_temp: Date.now(),
+        plaga_enfermedad: evaluacion.plaga_enfermedad || "",
+        incidencia: Number(evaluacion.incidencia || 0),
+        severidad: evaluacion.severidad || "",
+      },
+    ]);
+
+    setPlagaTemporal({
+      plaga_enfermedad: "",
+      incidencia: "",
+      severidad: "",
     });
 
     const inputFoto = document.getElementById("foto-evaluacion");
@@ -379,7 +482,7 @@ function Evaluaciones({ usuario }) {
       );
 
       limpiarFormulario();
-      obtenerEvaluaciones();
+      await obtenerEvaluaciones();
       mostrarMensaje("Evaluación actualizada correctamente.", "ok");
     } catch (error) {
       console.error(
@@ -412,7 +515,7 @@ function Evaluaciones({ usuario }) {
       setLoading(true);
 
       await axios.delete(`${API_URL}/evaluations/${id}`);
-      obtenerEvaluaciones();
+      await obtenerEvaluaciones();
       mostrarMensaje("Evaluación eliminada correctamente.", "ok");
     } catch (error) {
       console.error(
@@ -560,6 +663,7 @@ function Evaluaciones({ usuario }) {
           <h2 style={{ ...styles.cardNumber, color: "#15803d" }}>{conGps}</h2>
         </div>
       </div>
+
       {puedeCrearEditar && (
         <div style={styles.panel}>
           <h2 style={styles.panelTitle}>
@@ -615,37 +719,6 @@ function Evaluaciones({ usuario }) {
 
             <input
               style={styles.input}
-              name="plaga_enfermedad"
-              placeholder="Plaga o enfermedad"
-              value={form.plaga_enfermedad}
-              onChange={handleChange}
-            />
-
-            <input
-              style={styles.input}
-              name="incidencia"
-              type="number"
-              min="0"
-              max="100"
-              placeholder="Incidencia %"
-              value={form.incidencia}
-              onChange={handleChange}
-            />
-
-            <select
-              style={styles.input}
-              name="severidad"
-              value={form.severidad}
-              onChange={handleChange}
-            >
-              <option value="">Severidad</option>
-              <option value="Baja">Baja</option>
-              <option value="Media">Media</option>
-              <option value="Alta">Alta</option>
-            </select>
-
-            <input
-              style={styles.input}
               name="responsable"
               placeholder="Responsable"
               value={form.responsable}
@@ -680,6 +753,110 @@ function Evaluaciones({ usuario }) {
             >
               📍 Usar GPS actual
             </button>
+
+            <div style={styles.plagasPanel}>
+              <h3 style={styles.plagasTitle}>Detalle de plagas o enfermedades</h3>
+
+              <div style={styles.plagasForm}>
+                <input
+                  style={styles.input}
+                  name="plaga_enfermedad"
+                  placeholder="Plaga o enfermedad"
+                  value={plagaTemporal.plaga_enfermedad}
+                  onChange={handlePlagaTemporalChange}
+                />
+
+                <input
+                  style={styles.input}
+                  name="incidencia"
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Incidencia %"
+                  value={plagaTemporal.incidencia}
+                  onChange={handlePlagaTemporalChange}
+                />
+
+                <select
+                  style={styles.input}
+                  name="severidad"
+                  value={plagaTemporal.severidad}
+                  onChange={handlePlagaTemporalChange}
+                >
+                  <option value="">Severidad</option>
+                  <option value="Baja">Baja</option>
+                  <option value="Media">Media</option>
+                  <option value="Alta">Alta</option>
+                </select>
+
+                <button
+                  type="button"
+                  style={styles.addButton}
+                  onClick={agregarPlaga}
+                  disabled={loading}
+                >
+                  + Agregar plaga
+                </button>
+              </div>
+
+              {plagasDetalle.length > 0 && (
+                <div style={styles.plagasTableWrapper}>
+                  <table style={styles.plagasTable}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Plaga/Enfermedad</th>
+                        <th style={styles.th}>Incidencia</th>
+                        <th style={styles.th}>Severidad</th>
+                        <th style={styles.th}>Acción</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {plagasDetalle.map((item) => (
+                        <tr key={item.id_temp}>
+                          <td style={styles.td}>{item.plaga_enfermedad}</td>
+                          <td style={styles.td}>{item.incidencia}%</td>
+                          <td style={styles.td}>{item.severidad}</td>
+                          <td style={styles.td}>
+                            <button
+                              type="button"
+                              style={styles.deleteButton}
+                              onClick={() => eliminarPlagaDetalle(item.id_temp)}
+                              disabled={loading}
+                            >
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div style={styles.resumenPlagas}>
+                    <div>
+                      <strong>Total incidencia:</strong> {totalIncidencia}%
+                    </div>
+
+                    <div>
+                      <strong>Severidad global:</strong>{" "}
+                      {obtenerSeveridadGlobal() || "-"}
+                    </div>
+
+                    <div>
+                      <strong>Riesgo estimado:</strong>{" "}
+                      <span
+                        style={{
+                          ...styles.badge,
+                          ...colorRiesgo(obtenerRiesgoGlobal()),
+                        }}
+                      >
+                        {obtenerRiesgoGlobal()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <textarea
               style={styles.textarea}
@@ -911,6 +1088,7 @@ function Evaluaciones({ usuario }) {
     </div>
   );
 }
+
 const styles = {
   container: {
     padding: "28px",
@@ -1022,7 +1200,7 @@ const styles = {
     fontSize: "14px",
     outline: "none",
     resize: "vertical",
-    minHeight: "45px",
+    minHeight: "80px",
   },
   gpsButton: {
     padding: "12px 16px",
@@ -1032,6 +1210,56 @@ const styles = {
     color: "#ffffff",
     fontWeight: "700",
     cursor: "pointer",
+  },
+  plagasPanel: {
+    gridColumn: "1 / -1",
+    background: "#f8fafc",
+    border: "1px solid #cbd5e1",
+    borderRadius: "16px",
+    padding: "16px",
+  },
+  plagasTitle: {
+    margin: "0 0 12px",
+    color: "#0f172a",
+    fontSize: "17px",
+    fontWeight: "800",
+  },
+  plagasForm: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "12px",
+  },
+  addButton: {
+    padding: "12px 16px",
+    borderRadius: "12px",
+    border: "none",
+    background: "#2563eb",
+    color: "#ffffff",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+  plagasTableWrapper: {
+    marginTop: "14px",
+    overflowX: "auto",
+  },
+  plagasTable: {
+    width: "100%",
+    borderCollapse: "collapse",
+    background: "#ffffff",
+    borderRadius: "12px",
+    overflow: "hidden",
+  },
+  resumenPlagas: {
+    marginTop: "14px",
+    display: "flex",
+    gap: "14px",
+    flexWrap: "wrap",
+    alignItems: "center",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    padding: "12px",
+    color: "#334155",
   },
   gpsLink: {
     padding: "7px 12px",
