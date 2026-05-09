@@ -1,4 +1,4 @@
-const CACHE_NAME = "siesa-fitosanitario-v1";
+const CACHE_NAME = "siesa-fitosanitario-v2";
 
 const urlsToCache = [
   "/",
@@ -35,6 +35,16 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const requestUrl = new URL(event.request.url);
+
+  if (
+    requestUrl.pathname.startsWith("/api") ||
+    requestUrl.href.includes("railway.app/api")
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() => {
       return caches.match(event.request);
