@@ -181,10 +181,15 @@ function Evaluaciones({ usuario }) {
     });
   };
 
-  const totalIncidencia = plagasDetalle.reduce((total, item) => {
+  const sumaIncidencia = plagasDetalle.reduce((total, item) => {
     const valor = Number(item.incidencia);
     return total + (isNaN(valor) ? 0 : valor);
   }, 0);
+
+  const promedioIncidencia =
+    plagasDetalle.length > 0
+      ? Number((sumaIncidencia / plagasDetalle.length).toFixed(2))
+      : 0;
 
   const obtenerSeveridadGlobal = () => {
     const severidades = plagasDetalle.map((item) => item.severidad);
@@ -199,9 +204,9 @@ function Evaluaciones({ usuario }) {
   const obtenerRiesgoGlobal = () => {
     const severidadGlobal = obtenerSeveridadGlobal();
 
-    if (totalIncidencia > 50 || severidadGlobal === "Alta") return "Crítico";
-    if (totalIncidencia > 25) return "Alto";
-    if (totalIncidencia > 10 || severidadGlobal === "Media") return "Medio";
+    if (promedioIncidencia > 50 || severidadGlobal === "Alta") return "Crítico";
+    if (promedioIncidencia > 25) return "Alto";
+    if (promedioIncidencia > 10 || severidadGlobal === "Media") return "Medio";
 
     return "Bajo";
   };
@@ -218,15 +223,11 @@ function Evaluaciones({ usuario }) {
       return;
     }
 
-    if (Number(plagaTemporal.incidencia) < 0 || Number(plagaTemporal.incidencia) > 100) {
+    if (
+      Number(plagaTemporal.incidencia) < 0 ||
+      Number(plagaTemporal.incidencia) > 100
+    ) {
       mostrarMensaje("La incidencia de cada plaga debe estar entre 0 y 100%.", "error");
-      return;
-    }
-
-    const nuevoTotal = totalIncidencia + Number(plagaTemporal.incidencia);
-
-    if (nuevoTotal > 100) {
-      mostrarMensaje("La suma total de incidencias no puede superar 100%.", "error");
       return;
     }
 
@@ -345,8 +346,8 @@ function Evaluaciones({ usuario }) {
       return false;
     }
 
-    if (totalIncidencia < 0 || totalIncidencia > 100) {
-      mostrarMensaje("La incidencia total debe estar entre 0 y 100%.", "error");
+    if (promedioIncidencia < 0 || promedioIncidencia > 100) {
+      mostrarMensaje("La incidencia promedio debe estar entre 0 y 100%.", "error");
       return false;
     }
 
@@ -369,7 +370,7 @@ function Evaluaciones({ usuario }) {
     data.append("farm_id", Number(form.farm_id));
     data.append("lot_id", Number(form.lot_id));
     data.append("plaga_enfermedad", prepararTextoPlagas());
-    data.append("incidencia", Number(totalIncidencia));
+    data.append("incidencia", Number(promedioIncidencia));
     data.append("severidad", obtenerSeveridadGlobal());
     data.append("observaciones", form.observaciones || "");
     data.append("responsable", form.responsable || "");
@@ -772,6 +773,7 @@ function Evaluaciones({ usuario }) {
                   type="number"
                   min="0"
                   max="100"
+                  step="0.01"
                   placeholder="Incidencia %"
                   value={plagaTemporal.incidencia}
                   onChange={handlePlagaTemporalChange}
@@ -834,7 +836,11 @@ function Evaluaciones({ usuario }) {
 
                   <div style={styles.resumenPlagas}>
                     <div>
-                      <strong>Total incidencia:</strong> {totalIncidencia}%
+                      <strong>Promedio incidencia:</strong> {promedioIncidencia}%
+                    </div>
+
+                    <div>
+                      <strong>Suma referencial:</strong> {sumaIncidencia}%
                     </div>
 
                     <div>

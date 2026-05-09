@@ -735,6 +735,8 @@ function Lotes({ usuario }) {
             <input
               style={styles.input}
               type="number"
+              min="0"
+              step="0.01"
               placeholder="Área hectáreas"
               value={
                 form.area_hectareas

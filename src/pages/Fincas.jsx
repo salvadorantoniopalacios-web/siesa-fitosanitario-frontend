@@ -393,6 +393,7 @@ function Fincas({ usuario }) {
               name="area_hectareas"
               type="number"
               min="0"
+              step="0.01"
               placeholder="Área (ha)"
               value={form.area_hectareas}
               onChange={handleChange}
