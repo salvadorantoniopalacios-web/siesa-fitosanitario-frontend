@@ -31,6 +31,20 @@ function MapaFincas() {
   const [fincaSeleccionada, setFincaSeleccionada] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [tipoMapa, setTipoMapa] = useState("satelital");
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const detectarPantalla = () => {
+      setEsMovil(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", detectarPantalla);
+    detectarPantalla();
+
+    return () => {
+      window.removeEventListener("resize", detectarPantalla);
+    };
+  }, []);
 
   const obtenerColorRiesgo = (riesgo) => {
     if (riesgo === "Crítico") return "#dc2626";
@@ -64,8 +78,7 @@ function MapaFincas() {
 
       const mismaFinca =
         !alerta.finca_nombre ||
-        normalizarTexto(alerta.finca_nombre) ===
-          normalizarTexto(lote.finca_nombre);
+        normalizarTexto(alerta.finca_nombre) === normalizarTexto(lote.finca_nombre);
 
       return (mismoId || mismoCodigo) && mismaFinca;
     });
@@ -123,7 +136,7 @@ function MapaFincas() {
       setAlertas(alertasData);
       setFincaSeleccionada(fincasConGps[0] || null);
     } catch (error) {
-      console.error("Error cargando mapa de fincas:", error.response?.data || error.message);
+      console.error("Error cargando mapa:", error.response?.data || error.message);
       setFincas([]);
       setLotes([]);
       setAlertas([]);
@@ -172,7 +185,7 @@ function MapaFincas() {
         Seleccione una finca para visualizar únicamente sus lotes georreferenciados.
       </p>
 
-      <div style={styles.cards}>
+      <div style={esMovil ? styles.cardsMovil : styles.cards}>
         <div style={styles.card}>
           <p style={styles.cardLabel}>Fincas con GPS</p>
           <h2 style={styles.cardNumber}>{fincas.length}</h2>
@@ -196,7 +209,7 @@ function MapaFincas() {
       ) : fincas.length === 0 ? (
         <div style={styles.empty}>No hay fincas registradas con GPS.</div>
       ) : (
-        <div style={styles.grid}>
+        <div style={esMovil ? styles.gridMovil : styles.grid}>
           <div style={styles.panel}>
             <h2 style={styles.panelTitle}>Fincas</h2>
 
@@ -209,18 +222,15 @@ function MapaFincas() {
               ).length;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={finca.id}
                   style={{
                     ...styles.fincaItem,
                     borderColor:
-                      fincaSeleccionada?.id === finca.id
-                        ? "#15803d"
-                        : "#e2e8f0",
+                      fincaSeleccionada?.id === finca.id ? "#15803d" : "#e2e8f0",
                     background:
-                      fincaSeleccionada?.id === finca.id
-                        ? "#ecfdf5"
-                        : "#ffffff",
+                      fincaSeleccionada?.id === finca.id ? "#ecfdf5" : "#ffffff",
                   }}
                   onClick={() => setFincaSeleccionada(finca)}
                 >
@@ -234,7 +244,7 @@ function MapaFincas() {
                   <small>
                     Centro finca: {finca.latitud}, {finca.longitud}
                   </small>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -253,13 +263,12 @@ function MapaFincas() {
                 </p>
               </div>
 
-              <div style={styles.mapActions}>
+              <div style={esMovil ? styles.mapActionsMovil : styles.mapActions}>
                 <button
                   type="button"
                   style={{
                     ...styles.mapTypeButton,
-                    background:
-                      tipoMapa === "normal" ? "#15803d" : "#64748b",
+                    background: tipoMapa === "normal" ? "#15803d" : "#64748b",
                   }}
                   onClick={() => setTipoMapa("normal")}
                 >
@@ -270,8 +279,7 @@ function MapaFincas() {
                   type="button"
                   style={{
                     ...styles.mapTypeButton,
-                    background:
-                      tipoMapa === "satelital" ? "#15803d" : "#64748b",
+                    background: tipoMapa === "satelital" ? "#15803d" : "#64748b",
                   }}
                   onClick={() => setTipoMapa("satelital")}
                 >
@@ -293,12 +301,11 @@ function MapaFincas() {
             {lotesFinca.length === 0 && (
               <div style={styles.warningBox}>
                 Esta finca está registrada, pero todavía no tiene lotes
-                georreferenciados. Cuando registres GPS en sus lotes,
-                aparecerán aquí como puntos en el mapa.
+                georreferenciados.
               </div>
             )}
 
-            <div style={styles.mapBox}>
+            <div style={esMovil ? styles.mapBoxMovil : styles.mapBox}>
               <MapContainer
                 center={centroMapa}
                 zoom={15}
@@ -320,7 +327,7 @@ function MapaFincas() {
                       icon={crearIconoRiesgo(riesgoLote)}
                     >
                       <Popup>
-                        <div style={{ minWidth: "240px" }}>
+                        <div style={{ minWidth: "220px" }}>
                           <strong>Lote: {lote.codigo}</strong>
                           <br />
                           <br />
@@ -367,13 +374,17 @@ function MapaFincas() {
 
 const styles = {
   container: {
-    padding: "28px",
+    padding: "0",
     background: "#f8fafc",
     minHeight: "100vh",
+    width: "100%",
+    maxWidth: "100%",
+    overflowX: "hidden",
+    boxSizing: "border-box",
   },
 
   title: {
-    fontSize: "32px",
+    fontSize: "28px",
     fontWeight: "800",
     color: "#0f172a",
     marginBottom: "4px",
@@ -381,7 +392,7 @@ const styles = {
 
   subtitle: {
     color: "#64748b",
-    marginBottom: "24px",
+    marginBottom: "20px",
   },
 
   cards: {
@@ -391,10 +402,17 @@ const styles = {
     marginBottom: "24px",
   },
 
+  cardsMovil: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "12px",
+    marginBottom: "16px",
+  },
+
   card: {
     background: "#ffffff",
     borderRadius: "18px",
-    padding: "22px",
+    padding: "18px",
     boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
     border: "1px solid #e2e8f0",
   },
@@ -405,13 +423,13 @@ const styles = {
   },
 
   cardNumber: {
-    fontSize: "32px",
+    fontSize: "30px",
     margin: "8px 0 0",
     color: "#2563eb",
   },
 
   cardText: {
-    fontSize: "22px",
+    fontSize: "20px",
     margin: "8px 0 0",
     color: "#0f172a",
   },
@@ -420,14 +438,26 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "minmax(280px, 360px) 1fr",
     gap: "20px",
+    width: "100%",
+  },
+
+  gridMovil: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "14px",
+    width: "100%",
   },
 
   panel: {
     background: "#ffffff",
     borderRadius: "18px",
-    padding: "24px",
+    padding: "18px",
     boxShadow: "0 10px 24px rgba(15,23,42,0.08)",
     border: "1px solid #e2e8f0",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    overflow: "hidden",
   },
 
   panelTitle: {
@@ -439,6 +469,7 @@ const styles = {
   },
 
   fincaItem: {
+    width: "100%",
     display: "flex",
     flexDirection: "column",
     gap: "5px",
@@ -448,6 +479,8 @@ const styles = {
     marginBottom: "10px",
     cursor: "pointer",
     color: "#334155",
+    textAlign: "left",
+    fontSize: "15px",
   },
 
   fincaTop: {
@@ -486,23 +519,32 @@ const styles = {
     flexWrap: "wrap",
   },
 
+  mapActionsMovil: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "8px",
+    width: "100%",
+  },
+
   mapTypeButton: {
-    padding: "10px 14px",
+    padding: "12px 14px",
     borderRadius: "12px",
     border: "none",
     color: "#ffffff",
     fontWeight: "700",
     cursor: "pointer",
+    width: "100%",
   },
 
   mapButton: {
-    padding: "10px 14px",
+    padding: "12px 14px",
     borderRadius: "12px",
     border: "none",
     background: "#0f172a",
     color: "#ffffff",
     fontWeight: "700",
     cursor: "pointer",
+    width: "100%",
   },
 
   warningBox: {
@@ -518,6 +560,15 @@ const styles = {
   mapBox: {
     width: "100%",
     height: "540px",
+    borderRadius: "18px",
+    overflow: "hidden",
+    border: "1px solid #cbd5e1",
+    background: "#f1f5f9",
+  },
+
+  mapBoxMovil: {
+    width: "100%",
+    height: "430px",
     borderRadius: "18px",
     overflow: "hidden",
     border: "1px solid #cbd5e1",
