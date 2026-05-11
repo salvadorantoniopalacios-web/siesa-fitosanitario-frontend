@@ -453,19 +453,13 @@ function Evaluaciones({ usuario }) {
   };
 
   const prepararTextoPlagas = () => {
-    return plagasDetalle
-      .map((item, index) => {
-        const textoBase = `${index + 1}. ${item.plaga_enfermedad} (${item.incidencia}% - ${item.severidad})`;
-
-        if (item.foto) {
-          return `${textoBase} [foto:PENDIENTE_FRONTEND]`;
-        }
-
-        return textoBase;
-      })
-      .join(" | ");
-  };
-
+  return plagasDetalle
+    .map(
+      (item, index) =>
+        `${index + 1}. ${item.plaga_enfermedad} (${item.incidencia}% - ${item.severidad})`
+    )
+    .join(" | ");
+};
   const prepararFormDataEvaluacion = () => {
     const data = new FormData();
 
