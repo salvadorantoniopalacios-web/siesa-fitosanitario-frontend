@@ -52,7 +52,16 @@ function Evaluaciones({ usuario }) {
       localStorage.getItem("siesa_token")
     );
   };
+  const formatearFechaLocal = (fecha) => {
+  if (!fecha) return "-";
 
+  const fechaTexto = String(fecha).substring(0, 10);
+  const [year, month, day] = fechaTexto.split("-");
+
+  if (!year || !month || !day) return "-";
+
+  return `${day}/${month}/${year}`;
+};
   const limpiarMensaje = () => {
     setMensaje({
       texto: "",
@@ -546,7 +555,7 @@ function Evaluaciones({ usuario }) {
         );
         return;
       }
-
+      
       const res = await axios.get(`${API_URL}/evaluations/${id}/pdf`, {
         responseType: "blob",
         headers: {
@@ -988,7 +997,7 @@ function Evaluaciones({ usuario }) {
                 evaluacionesFiltradas.map((e) => (
                   <tr key={e.id}>
                     <td style={styles.td}>
-                      {e.fecha ? new Date(e.fecha).toLocaleDateString() : "-"}
+                      {formatearFechaLocal(e.fecha)}
                     </td>
 
                     <td style={styles.td}>{e.finca || "-"}</td>
