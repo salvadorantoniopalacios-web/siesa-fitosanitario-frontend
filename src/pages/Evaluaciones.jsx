@@ -20,6 +20,7 @@ function Evaluaciones({ usuario }) {
     plaga_enfermedad: "",
     incidencia: "",
     severidad: "",
+    foto: null,
   });
 
   const [plagasDetalle, setPlagasDetalle] = useState([]);
@@ -46,6 +47,29 @@ function Evaluaciones({ usuario }) {
     longitud: "",
   });
 
+  const tiposImagenPermitidos = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "image/webp",
+  ];
+
+  const validarImagen = (archivo) => {
+    if (!archivo) return true;
+
+    if (!tiposImagenPermitidos.includes(archivo.type)) {
+      mostrarMensaje("Solo se permiten imágenes JPG, PNG o WEBP.", "error");
+      return false;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      mostrarMensaje("La imagen no debe superar 5 MB.", "error");
+      return false;
+    }
+
+    return true;
+  };
+
   const obtenerToken = () => {
     return (
       sessionStorage.getItem("token") ||
@@ -54,16 +78,18 @@ function Evaluaciones({ usuario }) {
       localStorage.getItem("siesa_token")
     );
   };
+
   const formatearFechaLocal = (fecha) => {
-  if (!fecha) return "-";
+    if (!fecha) return "-";
 
-  const fechaTexto = String(fecha).substring(0, 10);
-  const [year, month, day] = fechaTexto.split("-");
+    const fechaTexto = String(fecha).substring(0, 10);
+    const [year, month, day] = fechaTexto.split("-");
 
-  if (!year || !month || !day) return "-";
+    if (!year || !month || !day) return "-";
 
-  return `${day}/${month}/${year}`;
-};
+    return `${day}/${month}/${year}`;
+  };
+
   const limpiarMensaje = () => {
     setMensaje({
       texto: "",
@@ -129,32 +155,40 @@ function Evaluaciones({ usuario }) {
       });
     }
   };
-  const obtenerCultivos = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/catalog/crops`);
-    setCultivos(Array.isArray(res.data) ? res.data : []);
-  } catch (error) {
-    console.error("Error obteniendo cultivos:", error.response?.data || error.message);
-    setCultivos([]);
-  }
-};
 
-const obtenerPlagasCatalogo = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/catalog/pests`);
-    setPlagasCatalogo(Array.isArray(res.data) ? res.data : []);
-  } catch (error) {
-    console.error("Error obteniendo plagas:", error.response?.data || error.message);
-    setPlagasCatalogo([]);
-  }
-};
+  const obtenerCultivos = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/catalog/crops`);
+      setCultivos(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error(
+        "Error obteniendo cultivos:",
+        error.response?.data || error.message
+      );
+      setCultivos([]);
+    }
+  };
+
+  const obtenerPlagasCatalogo = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/catalog/pests`);
+      setPlagasCatalogo(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error(
+        "Error obteniendo plagas:",
+        error.response?.data || error.message
+      );
+      setPlagasCatalogo([]);
+    }
+  };
+
   useEffect(() => {
-  obtenerEvaluaciones();
-  obtenerFincas();
-  obtenerLotes();
-  obtenerCultivos();
-  obtenerPlagasCatalogo();
-}, []);
+    obtenerEvaluaciones();
+    obtenerFincas();
+    obtenerLotes();
+    obtenerCultivos();
+    obtenerPlagasCatalogo();
+  }, []);
 
   const obtenerUbicacionActual = () => {
     limpiarMensaje();
@@ -212,6 +246,34 @@ const obtenerPlagasCatalogo = async () => {
     });
   };
 
+  const handleFotoPlagaTemporalChange = (e) => {
+    limpiarMensaje();
+
+    const archivo = e.target.files[0];
+
+    if (!archivo) {
+      setPlagaTemporal({
+        ...plagaTemporal,
+        foto: null,
+      });
+      return;
+    }
+
+    if (!validarImagen(archivo)) {
+      e.target.value = "";
+      setPlagaTemporal({
+        ...plagaTemporal,
+        foto: null,
+      });
+      return;
+    }
+
+    setPlagaTemporal({
+      ...plagaTemporal,
+      foto: archivo,
+    });
+  };
+
   const sumaIncidencia = plagasDetalle.reduce((total, item) => {
     const valor = Number(item.incidencia);
     return total + (isNaN(valor) ? 0 : valor);
@@ -250,7 +312,10 @@ const obtenerPlagasCatalogo = async () => {
       plagaTemporal.incidencia === "" ||
       !plagaTemporal.severidad
     ) {
-      mostrarMensaje("Complete plaga/enfermedad, incidencia y severidad.", "error");
+      mostrarMensaje(
+        "Complete plaga/enfermedad, incidencia y severidad.",
+        "error"
+      );
       return;
     }
 
@@ -258,7 +323,10 @@ const obtenerPlagasCatalogo = async () => {
       Number(plagaTemporal.incidencia) < 0 ||
       Number(plagaTemporal.incidencia) > 100
     ) {
-      mostrarMensaje("La incidencia de cada plaga debe estar entre 0 y 100%.", "error");
+      mostrarMensaje(
+        "La incidencia de cada plaga debe estar entre 0 y 100%.",
+        "error"
+      );
       return;
     }
 
@@ -269,6 +337,7 @@ const obtenerPlagasCatalogo = async () => {
         plaga_enfermedad: plagaTemporal.plaga_enfermedad,
         incidencia: Number(plagaTemporal.incidencia),
         severidad: plagaTemporal.severidad,
+        foto: plagaTemporal.foto || null,
       },
     ]);
 
@@ -276,7 +345,14 @@ const obtenerPlagasCatalogo = async () => {
       plaga_enfermedad: "",
       incidencia: "",
       severidad: "",
+      foto: null,
     });
+
+    const inputFotoPlaga = document.getElementById("foto-plaga-temporal");
+
+    if (inputFotoPlaga) {
+      inputFotoPlaga.value = "";
+    }
   };
 
   const eliminarPlagaDetalle = (idTemp) => {
@@ -293,22 +369,7 @@ const obtenerPlagasCatalogo = async () => {
       return;
     }
 
-    const tiposPermitidos = [
-      "image/jpeg",
-      "image/png",
-      "image/jpg",
-      "image/webp",
-    ];
-
-    if (!tiposPermitidos.includes(archivo.type)) {
-      mostrarMensaje("Solo se permiten imágenes JPG, PNG o WEBP.", "error");
-      e.target.value = "";
-      setFoto(null);
-      return;
-    }
-
-    if (archivo.size > 5 * 1024 * 1024) {
-      mostrarMensaje("La imagen no debe superar 5 MB.", "error");
+    if (!validarImagen(archivo)) {
       e.target.value = "";
       setFoto(null);
       return;
@@ -332,6 +393,7 @@ const obtenerPlagasCatalogo = async () => {
       plaga_enfermedad: "",
       incidencia: "",
       severidad: "",
+      foto: null,
     });
 
     setPlagasDetalle([]);
@@ -341,9 +403,14 @@ const obtenerPlagasCatalogo = async () => {
     limpiarMensaje();
 
     const inputFoto = document.getElementById("foto-evaluacion");
+    const inputFotoPlaga = document.getElementById("foto-plaga-temporal");
 
     if (inputFoto) {
       inputFoto.value = "";
+    }
+
+    if (inputFotoPlaga) {
+      inputFotoPlaga.value = "";
     }
   };
 
@@ -387,10 +454,15 @@ const obtenerPlagasCatalogo = async () => {
 
   const prepararTextoPlagas = () => {
     return plagasDetalle
-      .map(
-        (item, index) =>
-          `${index + 1}. ${item.plaga_enfermedad} (${item.incidencia}% - ${item.severidad})`
-      )
+      .map((item, index) => {
+        const textoBase = `${index + 1}. ${item.plaga_enfermedad} (${item.incidencia}% - ${item.severidad})`;
+
+        if (item.foto) {
+          return `${textoBase} [foto:PENDIENTE_FRONTEND]`;
+        }
+
+        return textoBase;
+      })
       .join(" | ");
   };
 
@@ -411,6 +483,12 @@ const obtenerPlagasCatalogo = async () => {
     if (foto) {
       data.append("foto", foto);
     }
+
+    plagasDetalle.forEach((item) => {
+      if (item.foto) {
+        data.append("fotos_plagas", item.foto);
+      }
+    });
 
     return data;
   };
@@ -474,6 +552,7 @@ const obtenerPlagasCatalogo = async () => {
         plaga_enfermedad: evaluacion.plaga_enfermedad || "",
         incidencia: Number(evaluacion.incidencia || 0),
         severidad: evaluacion.severidad || "",
+        foto: null,
       },
     ]);
 
@@ -481,12 +560,18 @@ const obtenerPlagasCatalogo = async () => {
       plaga_enfermedad: "",
       incidencia: "",
       severidad: "",
+      foto: null,
     });
 
     const inputFoto = document.getElementById("foto-evaluacion");
+    const inputFotoPlaga = document.getElementById("foto-plaga-temporal");
 
     if (inputFoto) {
       inputFoto.value = "";
+    }
+
+    if (inputFotoPlaga) {
+      inputFotoPlaga.value = "";
     }
 
     window.scrollTo({
@@ -577,7 +662,7 @@ const obtenerPlagasCatalogo = async () => {
         );
         return;
       }
-      
+
       const res = await axios.get(`${API_URL}/evaluations/${id}/pdf`, {
         responseType: "blob",
         headers: {
@@ -625,25 +710,26 @@ const obtenerPlagasCatalogo = async () => {
   const bajas = evaluaciones.filter((e) => e.nivel_riesgo === "Bajo").length;
   const conEvidencia = evaluaciones.filter((e) => e.foto_url).length;
   const conGps = evaluaciones.filter((e) => e.latitud && e.longitud).length;
+
   const loteSeleccionado = lotes.find(
-  (lote) => Number(lote.id) === Number(form.lot_id)
-);
+    (lote) => Number(lote.id) === Number(form.lot_id)
+  );
 
-const cultivoDelLote = loteSeleccionado?.cultivo || "";
+  const cultivoDelLote = loteSeleccionado?.cultivo || "";
 
-const cultivoCatalogoSeleccionado = cultivos.find(
-  (cultivo) =>
-    String(cultivo.nombre || "").toLowerCase().trim() ===
-    String(cultivoDelLote || "").toLowerCase().trim()
-);
+  const cultivoCatalogoSeleccionado = cultivos.find(
+    (cultivo) =>
+      String(cultivo.nombre || "").toLowerCase().trim() ===
+      String(cultivoDelLote || "").toLowerCase().trim()
+  );
 
-const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
-  ? plagasCatalogo.filter(
-      (plaga) =>
-        Number(plaga.crop_id) === Number(cultivoCatalogoSeleccionado.id) &&
-        plaga.estado === "Activo"
-    )
-  : [];
+  const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
+    ? plagasCatalogo.filter(
+        (plaga) =>
+          Number(plaga.crop_id) === Number(cultivoCatalogoSeleccionado.id) &&
+          plaga.estado === "Activo"
+      )
+    : [];
 
   return (
     <div style={styles.container}>
@@ -705,7 +791,7 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
         </div>
 
         <div style={styles.card}>
-          <p style={styles.cardLabel}>Con evidencia</p>
+          <p style={styles.cardLabel}>Con evidencia general</p>
           <h2 style={{ ...styles.cardNumber, color: "#2563eb" }}>{conEvidencia}</h2>
         </div>
 
@@ -810,26 +896,26 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
 
               <div style={styles.plagasForm}>
                 <select
-  style={styles.input}
-  name="plaga_enfermedad"
-  value={plagaTemporal.plaga_enfermedad}
-  onChange={handlePlagaTemporalChange}
-  disabled={!form.lot_id || plagasFiltradasPorCultivo.length === 0}
->
-  <option value="">
-    {!form.lot_id
-      ? "Primero seleccione lote"
-      : plagasFiltradasPorCultivo.length === 0
-      ? "No hay plagas para este cultivo"
-      : "Seleccione plaga o enfermedad"}
-  </option>
+                  style={styles.input}
+                  name="plaga_enfermedad"
+                  value={plagaTemporal.plaga_enfermedad}
+                  onChange={handlePlagaTemporalChange}
+                  disabled={!form.lot_id || plagasFiltradasPorCultivo.length === 0}
+                >
+                  <option value="">
+                    {!form.lot_id
+                      ? "Primero seleccione lote"
+                      : plagasFiltradasPorCultivo.length === 0
+                      ? "No hay plagas para este cultivo"
+                      : "Seleccione plaga o enfermedad"}
+                  </option>
 
-  {plagasFiltradasPorCultivo.map((plaga) => (
-    <option key={plaga.id} value={plaga.nombre}>
-      {plaga.nombre} ({plaga.tipo})
-    </option>
-  ))}
-</select>
+                  {plagasFiltradasPorCultivo.map((plaga) => (
+                    <option key={plaga.id} value={plaga.nombre}>
+                      {plaga.nombre} ({plaga.tipo})
+                    </option>
+                  ))}
+                </select>
 
                 <input
                   style={styles.input}
@@ -855,6 +941,28 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
                   <option value="Alta">Alta</option>
                 </select>
 
+                <div style={styles.fileBoxMini}>
+                  <label style={styles.fileLabel}>Foto de esta plaga</label>
+
+                  <input
+                    id="foto-plaga-temporal"
+                    style={styles.fileInput}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleFotoPlagaTemporalChange}
+                  />
+
+                  <span style={styles.fileHelp}>
+                    JPG, PNG o WEBP. Máximo 5 MB.
+                  </span>
+
+                  {plagaTemporal.foto && (
+                    <span style={styles.fileSelected}>
+                      Seleccionada: {plagaTemporal.foto.name}
+                    </span>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   style={styles.addButton}
@@ -873,6 +981,7 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
                         <th style={styles.th}>Plaga/Enfermedad</th>
                         <th style={styles.th}>Incidencia</th>
                         <th style={styles.th}>Severidad</th>
+                        <th style={styles.th}>Foto</th>
                         <th style={styles.th}>Acción</th>
                       </tr>
                     </thead>
@@ -883,6 +992,17 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
                           <td style={styles.td}>{item.plaga_enfermedad}</td>
                           <td style={styles.td}>{item.incidencia}%</td>
                           <td style={styles.td}>{item.severidad}</td>
+                          <td style={styles.td}>
+                            {item.foto ? (
+                              <span style={styles.photoReady}>
+                                Con foto
+                              </span>
+                            ) : (
+                              <span style={styles.noPhoto}>
+                                Sin foto
+                              </span>
+                            )}
+                          </td>
                           <td style={styles.td}>
                             <button
                               type="button"
@@ -937,7 +1057,7 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
             />
 
             <div style={styles.fileBox}>
-              <label style={styles.fileLabel}>Evidencia fotográfica</label>
+              <label style={styles.fileLabel}>Evidencia fotográfica general</label>
 
               <input
                 id="foto-evaluacion"
@@ -1051,9 +1171,7 @@ const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
               ) : (
                 evaluacionesFiltradas.map((e) => (
                   <tr key={e.id}>
-                    <td style={styles.td}>
-                      {formatearFechaLocal(e.fecha)}
-                    </td>
+                    <td style={styles.td}>{formatearFechaLocal(e.fecha)}</td>
 
                     <td style={styles.td}>{e.finca || "-"}</td>
 
@@ -1359,6 +1477,15 @@ const styles = {
     flexDirection: "column",
     gap: "6px",
   },
+  fileBoxMini: {
+    padding: "10px 12px",
+    borderRadius: "12px",
+    border: "1px dashed #94a3b8",
+    background: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+  },
   fileLabel: {
     fontWeight: "700",
     color: "#334155",
@@ -1450,6 +1577,15 @@ const styles = {
     background: "#dbeafe",
     color: "#1e40af",
     textDecoration: "none",
+    fontWeight: "700",
+    fontSize: "13px",
+    display: "inline-block",
+  },
+  photoReady: {
+    padding: "7px 12px",
+    borderRadius: "10px",
+    background: "#dcfce7",
+    color: "#166534",
     fontWeight: "700",
     fontSize: "13px",
     display: "inline-block",
