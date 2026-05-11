@@ -9,6 +9,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  BarChart,
+  Bar,
 } from "recharts";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
@@ -548,7 +550,51 @@ function Lotes({ usuario }) {
         e.incidencia || 0
       ),
     }));
+  const datosImpactoPlagas = Object.values(
+  historialLote.reduce((acc, evaluacion) => {
+    const texto = String(
+      evaluacion.plaga_enfermedad || ""
+    );
 
+    const plagas = texto
+      .replace(/\[foto:.*?\]/g, "")
+      .split("|")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    plagas.forEach((plagaTexto) => {
+      const match = plagaTexto.match(
+        /^(.*?)\s*\(([\d.]+)%/
+      );
+
+      if (!match) return;
+
+      const nombre = match[1]
+        .replace(/^\d+\.\s*/, "")
+        .trim();
+
+      const incidencia = Number(match[2]);
+
+      if (!acc[nombre]) {
+        acc[nombre] = {
+          plaga: nombre,
+          total: 0,
+          cantidad: 0,
+        };
+      }
+
+      acc[nombre].total += incidencia;
+      acc[nombre].cantidad += 1;
+    });
+
+    return acc;
+  }, {})
+).map((item) => ({
+  plaga: item.plaga,
+  promedio: Number(
+    (item.total / item.cantidad).toFixed(2)
+  ),
+}));
   const lotesFiltrados =
     lotes.filter((lote) => {
       const texto = `
@@ -1142,48 +1188,90 @@ function Lotes({ usuario }) {
             </div>
 
             <div style={styles.chartBox}>
-              <h3 style={styles.chartTitle}>
-                Tendencia de incidencia
-              </h3>
+  <h3 style={styles.chartTitle}>
+    Tendencia de incidencia
+  </h3>
 
-              {datosGraficaHistorial.length >
-              0 ? (
-                <ResponsiveContainer
-                  width="100%"
-                  height={260}
-                >
-                  <LineChart
-                    data={
-                      datosGraficaHistorial
-                    }
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
+  {datosGraficaHistorial.length > 0 ? (
+    <ResponsiveContainer
+      width="100%"
+      height={260}
+    >
+      <LineChart
+        data={datosGraficaHistorial}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
 
-                    <XAxis dataKey="fecha" />
+        <XAxis dataKey="fecha" />
 
-                    <YAxis />
+        <YAxis />
 
-                    <Tooltip />
+        <Tooltip />
 
-                    <Line
-                      type="monotone"
-                      dataKey="incidencia"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div
-                  style={
-                    styles.emptyHistory
-                  }
-                >
-                  Este lote aún no tiene
-                  evaluaciones registradas.
-                </div>
-              )}
-            </div>
+        <Line
+          type="monotone"
+          dataKey="incidencia"
+          stroke="#2563eb"
+          strokeWidth={3}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  ) : (
+    <div style={styles.emptyHistory}>
+      Este lote aún no tiene
+      evaluaciones registradas.
+    </div>
+  )}
+</div>
+
+<div style={styles.chartBox}>
+  <h3 style={styles.chartTitle}>
+    Plagas con mayor impacto
+  </h3>
+
+  {datosImpactoPlagas.length > 0 ? (
+    <ResponsiveContainer
+      width="100%"
+      height={320}
+    >
+      <BarChart
+        data={datosImpactoPlagas}
+        layout="vertical"
+        margin={{
+          top: 10,
+          right: 20,
+          left: 40,
+          bottom: 10,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+
+        <XAxis type="number" />
+
+        <YAxis
+          dataKey="plaga"
+          type="category"
+          width={220}
+        />
+
+        <Tooltip />
+
+        <Bar
+          dataKey="promedio"
+          fill="#dc2626"
+          radius={[0, 8, 8, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  ) : (
+    <div style={styles.emptyHistory}>
+      No hay datos suficientes
+      para generar análisis
+      de plagas.
+    </div>
+  )}
+</div>
+
           </div>
         </div>
       )}
@@ -1469,6 +1557,7 @@ const styles = {
     border: "1px solid #e2e8f0",
     borderRadius: "18px",
     padding: "18px",
+    marginBottom: "18px",
   },
 
   chartTitle: {
