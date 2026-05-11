@@ -18,6 +18,10 @@ function Lotes({ usuario }) {
 
   const [fincas, setFincas] = useState([]);
 
+  const [cultivos, setCultivos] = useState([]);
+
+  const [evaluaciones, setEvaluaciones] = useState([]);
+
   const [evaluaciones, setEvaluaciones] = useState([]);
 
   const [busqueda, setBusqueda] = useState("");
@@ -109,7 +113,31 @@ function Lotes({ usuario }) {
       );
     }
   };
+  const cargarCultivos = async () => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/catalog/crops`
+    );
 
+    setCultivos(
+      Array.isArray(response.data)
+        ? response.data.filter((cultivo) => cultivo.estado === "Activo")
+        : []
+    );
+  } catch (error) {
+    console.error(
+      "Error cargando cultivos:",
+      error.response?.data || error.message
+    );
+
+    setCultivos([]);
+
+    mostrarMensaje(
+      "No se pudieron cargar los cultivos.",
+      "error"
+    );
+  }
+};
   const cargarLotes = async () => {
     try {
       const response = await axios.get(
@@ -160,11 +188,13 @@ function Lotes({ usuario }) {
     };
 
   useEffect(() => {
-    cargarFincas();
+  cargarFincas();
 
-    cargarLotes();
+  cargarCultivos();
 
-    cargarEvaluaciones();
+  cargarLotes();
+
+  cargarEvaluaciones();
   }, []);
 
   const obtenerUbicacionActual = () => {
@@ -704,19 +734,39 @@ function Lotes({ usuario }) {
               )}
             </select>
 
-            <input
-              style={styles.input}
-              type="text"
-              placeholder="Cultivo"
-              value={form.cultivo}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  cultivo:
-                    e.target.value,
-                })
-              }
-            />
+            <select
+  style={styles.input}
+  value={form.cultivo}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      cultivo:
+        e.target.value,
+    })
+  }
+>
+  <option value="">
+    Seleccione cultivo
+  </option>
+
+  {form.cultivo &&
+    !cultivos.some(
+      (cultivo) => cultivo.nombre === form.cultivo
+    ) && (
+      <option value={form.cultivo}>
+        {form.cultivo}
+      </option>
+    )}
+
+  {cultivos.map((cultivo) => (
+    <option
+      key={cultivo.id}
+      value={cultivo.nombre}
+    >
+      {cultivo.nombre}
+    </option>
+  ))}
+</select>
 
             <input
               style={styles.input}
