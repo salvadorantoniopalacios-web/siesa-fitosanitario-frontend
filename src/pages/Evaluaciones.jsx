@@ -1173,7 +1173,9 @@ function Evaluaciones({ usuario }) {
 
                     <td style={styles.td}>{e.cultivo || "-"}</td>
 
-                    <td style={styles.td}>{e.plaga_enfermedad || "-"}</td>
+                    <td style={styles.td}>
+  {(e.plaga_enfermedad || "-").replace(/\[foto:.*?\]/g, "")}
+</td>
 
                     <td style={styles.td}>{e.incidencia}%</td>
 
