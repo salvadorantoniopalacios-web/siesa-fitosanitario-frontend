@@ -22,8 +22,6 @@ function Lotes({ usuario }) {
 
   const [evaluaciones, setEvaluaciones] = useState([]);
 
-  const [evaluaciones, setEvaluaciones] = useState([]);
-
   const [busqueda, setBusqueda] = useState("");
 
   const [editandoId, setEditandoId] = useState(null);
