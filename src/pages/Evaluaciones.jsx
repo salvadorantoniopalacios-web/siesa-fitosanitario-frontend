@@ -8,6 +8,8 @@ function Evaluaciones({ usuario }) {
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [fincas, setFincas] = useState([]);
   const [lotes, setLotes] = useState([]);
+  const [cultivos, setCultivos] = useState([]);
+  const [plagasCatalogo, setPlagasCatalogo] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -127,12 +129,32 @@ function Evaluaciones({ usuario }) {
       });
     }
   };
+  const obtenerCultivos = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/catalog/crops`);
+    setCultivos(Array.isArray(res.data) ? res.data : []);
+  } catch (error) {
+    console.error("Error obteniendo cultivos:", error.response?.data || error.message);
+    setCultivos([]);
+  }
+};
 
+const obtenerPlagasCatalogo = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/catalog/pests`);
+    setPlagasCatalogo(Array.isArray(res.data) ? res.data : []);
+  } catch (error) {
+    console.error("Error obteniendo plagas:", error.response?.data || error.message);
+    setPlagasCatalogo([]);
+  }
+};
   useEffect(() => {
-    obtenerEvaluaciones();
-    obtenerFincas();
-    obtenerLotes();
-  }, []);
+  obtenerEvaluaciones();
+  obtenerFincas();
+  obtenerLotes();
+  obtenerCultivos();
+  obtenerPlagasCatalogo();
+}, []);
 
   const obtenerUbicacionActual = () => {
     limpiarMensaje();
@@ -603,6 +625,25 @@ function Evaluaciones({ usuario }) {
   const bajas = evaluaciones.filter((e) => e.nivel_riesgo === "Bajo").length;
   const conEvidencia = evaluaciones.filter((e) => e.foto_url).length;
   const conGps = evaluaciones.filter((e) => e.latitud && e.longitud).length;
+  const loteSeleccionado = lotes.find(
+  (lote) => Number(lote.id) === Number(form.lot_id)
+);
+
+const cultivoDelLote = loteSeleccionado?.cultivo || "";
+
+const cultivoCatalogoSeleccionado = cultivos.find(
+  (cultivo) =>
+    String(cultivo.nombre || "").toLowerCase().trim() ===
+    String(cultivoDelLote || "").toLowerCase().trim()
+);
+
+const plagasFiltradasPorCultivo = cultivoCatalogoSeleccionado
+  ? plagasCatalogo.filter(
+      (plaga) =>
+        Number(plaga.crop_id) === Number(cultivoCatalogoSeleccionado.id) &&
+        plaga.estado === "Activo"
+    )
+  : [];
 
   return (
     <div style={styles.container}>
@@ -768,13 +809,27 @@ function Evaluaciones({ usuario }) {
               <h3 style={styles.plagasTitle}>Detalle de plagas o enfermedades</h3>
 
               <div style={styles.plagasForm}>
-                <input
-                  style={styles.input}
-                  name="plaga_enfermedad"
-                  placeholder="Plaga o enfermedad"
-                  value={plagaTemporal.plaga_enfermedad}
-                  onChange={handlePlagaTemporalChange}
-                />
+                <select
+  style={styles.input}
+  name="plaga_enfermedad"
+  value={plagaTemporal.plaga_enfermedad}
+  onChange={handlePlagaTemporalChange}
+  disabled={!form.lot_id || plagasFiltradasPorCultivo.length === 0}
+>
+  <option value="">
+    {!form.lot_id
+      ? "Primero seleccione lote"
+      : plagasFiltradasPorCultivo.length === 0
+      ? "No hay plagas para este cultivo"
+      : "Seleccione plaga o enfermedad"}
+  </option>
+
+  {plagasFiltradasPorCultivo.map((plaga) => (
+    <option key={plaga.id} value={plaga.nombre}>
+      {plaga.nombre} ({plaga.tipo})
+    </option>
+  ))}
+</select>
 
                 <input
                   style={styles.input}
