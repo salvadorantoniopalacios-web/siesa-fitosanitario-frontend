@@ -7,6 +7,8 @@ import Evaluaciones from "./Evaluaciones.jsx";
 import Alertas from "./Alertas.jsx";
 import MapaFincas from "./MapaFincas.jsx";
 import Usuarios from "./Usuarios.jsx";
+import Cultivos from "./Cultivos.jsx";
+import Plagas from "./Plagas.jsx";
 import {
   BarChart,
   Bar,
@@ -88,6 +90,10 @@ function Dashboard({ usuario }) {
       ? "Mapa de fincas"
       : vista === "usuarios"
       ? "Usuarios"
+      : vista === "cultivos"
+      ? "Cultivos"
+      : vista === "plagas"
+      ? "Plagas"
       : "Dashboard";
 
   const alertasPorNivel = [
@@ -273,6 +279,8 @@ function Dashboard({ usuario }) {
       {vista === "alertas" && <Alertas usuario={usuario} />}
       {vista === "mapa" && <MapaFincas usuario={usuario} />}
       {vista === "usuarios" && <Usuarios usuario={usuario} />}
+      {vista === "cultivos" && <Cultivos usuario={usuario} />}
+      {vista === "plagas" && <Plagas usuario={usuario} />}
     </Layout>
   );
 }

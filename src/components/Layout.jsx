@@ -110,6 +110,8 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
           {opcionMenu("🏠", "Inicio", "inicio")}
           {opcionMenu("🌱", "Fincas", "fincas")}
           {opcionMenu("🧾", "Lotes", "lotes")}
+          {opcionMenu("🌾", "Cultivos", "cultivos")}
+          {opcionMenu("🐛", "Plagas", "plagas")}
           {opcionMenu("📊", "Evaluaciones", "evaluaciones")}
 
           {opcionMenu(
