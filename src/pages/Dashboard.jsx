@@ -9,6 +9,7 @@ import MapaFincas from "./MapaFincas.jsx";
 import Usuarios from "./Usuarios.jsx";
 import Cultivos from "./Cultivos.jsx";
 import Plagas from "./Plagas.jsx";
+import Aplicaciones from "./Aplicaciones.jsx";
 import {
   BarChart,
   Bar,
@@ -84,6 +85,8 @@ function Dashboard({ usuario }) {
       ? "Lotes"
       : vista === "evaluaciones"
       ? "Evaluaciones"
+      : vista === "aplicaciones"
+      ? "Aplicaciones"
       : vista === "alertas"
       ? "Alertas"
       : vista === "mapa"
@@ -275,6 +278,7 @@ function Dashboard({ usuario }) {
 
       {vista === "fincas" && <Fincas usuario={usuario} />}
       {vista === "lotes" && <Lotes usuario={usuario} />}
+      {vista === "evaluaciones" && <Evaluaciones usuario={usuario} />}
       {vista === "evaluaciones" && <Evaluaciones usuario={usuario} />}
       {vista === "alertas" && <Alertas usuario={usuario} />}
       {vista === "mapa" && <MapaFincas usuario={usuario} />}
