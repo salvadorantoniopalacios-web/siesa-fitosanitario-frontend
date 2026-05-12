@@ -726,32 +726,78 @@ function Evaluaciones({ usuario }) {
       )
     : [];
   const exportarExcel = () => {
-  const datos = evaluacionesFiltradas.map((e) => ({
-    Fecha: formatearFechaLocal(e.fecha),
-    Finca: e.finca || "-",
-    Lote: e.lote || "-",
-    Cultivo: e.cultivo || "-",
-    "Plaga/Enfermedad": (e.plaga_enfermedad || "-").replace(/\[foto:.*?\]/g, ""),
-    "Incidencia %": e.incidencia || 0,
-    Severidad: e.severidad || "-",
-    Riesgo: e.nivel_riesgo || "-",
-    Responsable: e.responsable || "-",
-    GPS:
-      e.latitud && e.longitud
-        ? `${e.latitud}, ${e.longitud}`
-        : "Sin GPS",
-    Evidencia: e.foto_url ? `${BACKEND_URL}${e.foto_url}` : "Sin foto",
-    Observaciones: e.observaciones || "-",
-  }));
+  const filas = [];
 
-  const hoja = XLSX.utils.json_to_sheet(datos);
+  evaluacionesFiltradas.forEach((e) => {
+    const textoPlagas = String(
+      e.plaga_enfermedad || ""
+    ).replace(/\[foto:.*?\]/g, "");
+
+    const plagas = textoPlagas
+      .split("|")
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (plagas.length === 0) {
+      filas.push({
+        Fecha: formatearFechaLocal(e.fecha),
+        Finca: e.finca || "-",
+        Lote: e.lote || "-",
+        Cultivo: e.cultivo || "-",
+        Plaga: "-",
+        Incidencia: "-",
+        Severidad: "-",
+        Riesgo: e.nivel_riesgo || "-",
+        Responsable: e.responsable || "-",
+      });
+
+      return;
+    }
+
+    plagas.forEach((plagaTexto) => {
+      const match = plagaTexto.match(
+        /^\d+\.\s*(.*?)\s*\(([\d.]+)%\s*-\s*(.*?)\)$/
+      );
+
+      filas.push({
+        Fecha: formatearFechaLocal(e.fecha),
+        Finca: e.finca || "-",
+        Lote: e.lote || "-",
+        Cultivo: e.cultivo || "-",
+
+        Plaga: match ? match[1] : plagaTexto,
+
+        Incidencia: match ? Number(match[2]) : "-",
+
+        Severidad: match ? match[3] : "-",
+
+        Riesgo: e.nivel_riesgo || "-",
+
+        Responsable: e.responsable || "-",
+
+        GPS:
+          e.latitud && e.longitud
+            ? `${e.latitud}, ${e.longitud}`
+            : "Sin GPS",
+
+        Evidencia: e.foto_url
+          ? `${BACKEND_URL}${e.foto_url}`
+          : "Sin foto",
+
+        Observaciones:
+          e.observaciones || "-",
+      });
+    });
+  });
+
+  const hoja = XLSX.utils.json_to_sheet(filas);
 
   hoja["!cols"] = [
     { wch: 14 },
     { wch: 24 },
     { wch: 18 },
     { wch: 18 },
-    { wch: 60 },
+    { wch: 35 },
     { wch: 14 },
     { wch: 14 },
     { wch: 14 },
@@ -762,9 +808,17 @@ function Evaluaciones({ usuario }) {
   ];
 
   const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, "Evaluaciones");
 
-  XLSX.writeFile(libro, "reporte-evaluaciones-fitosanitarias.xlsx");
+  XLSX.utils.book_append_sheet(
+    libro,
+    hoja,
+    "Evaluaciones"
+  );
+
+  XLSX.writeFile(
+    libro,
+    "reporte-fitosanitario.xlsx"
+  );
 };
   return (
     <div style={styles.container}>
