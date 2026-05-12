@@ -41,6 +41,7 @@ function Lotes({ usuario }) {
   const [loteHistorial, setLoteHistorial] =
     useState(null);
   const [plagaSeleccionada, setPlagaSeleccionada] = useState("");
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
   const esAdmin = usuario?.rol === "Admin";
 
   const esTecnico =
@@ -212,7 +213,18 @@ function Lotes({ usuario }) {
   cargarEvaluaciones();
 
   cargarAplicaciones();
-  }, []);
+
+  const detectarPantalla = () => {
+    setEsMovil(window.innerWidth <= 768);
+  };
+
+  window.addEventListener("resize", detectarPantalla);
+  detectarPantalla();
+
+  return () => {
+    window.removeEventListener("resize", detectarPantalla);
+  };
+}, []);
 
   const obtenerUbicacionActual = () => {
     if (!navigator.geolocation) {
@@ -1287,7 +1299,7 @@ const aplicacionesParaPlaga = aplicacionesLote
   {datosGraficaHistorial.length > 0 ? (
     <ResponsiveContainer
       width="100%"
-      height={260}
+      height={esMovil ? 200 : 260}
     >
       <LineChart
         data={datosGraficaHistorial}
@@ -1383,7 +1395,7 @@ const aplicacionesParaPlaga = aplicacionesLote
   </div>
 
   {datosCurvaPlaga.length > 0 ? (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={esMovil ? 230 : 320}>
       <LineChart data={datosCurvaPlaga}>
         <CartesianGrid strokeDasharray="3 3" />
 
