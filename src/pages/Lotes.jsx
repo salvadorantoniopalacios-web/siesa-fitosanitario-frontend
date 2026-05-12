@@ -37,7 +37,7 @@ function Lotes({ usuario }) {
 
   const [loteHistorial, setLoteHistorial] =
     useState(null);
-
+  const [plagaSeleccionada, setPlagaSeleccionada] = useState("");
   const esAdmin = usuario?.rol === "Admin";
 
   const esTecnico =
@@ -481,15 +481,17 @@ function Lotes({ usuario }) {
   };
 
   const abrirHistorial = (
-    lote
-  ) => {
-    setLoteHistorial(lote);
-  };
+  lote
+) => {
+  setLoteHistorial(lote);
+  setPlagaSeleccionada("");
+};
 
   const cerrarHistorial =
-    () => {
-      setLoteHistorial(null);
-    };
+  () => {
+    setLoteHistorial(null);
+    setPlagaSeleccionada("");
+  };
 
   const colorRiesgo = (
     riesgo
@@ -541,10 +543,8 @@ function Lotes({ usuario }) {
   const datosGraficaHistorial =
     historialLote.map((e) => ({
       fecha: e.fecha
-        ? new Date(
-            e.fecha
-          ).toLocaleDateString()
-        : "-",
+  ? String(e.fecha).substring(0, 10).split("-").reverse().join("/")
+  : "-",
 
       incidencia: Number(
         e.incidencia || 0
@@ -595,6 +595,49 @@ function Lotes({ usuario }) {
     (item.total / item.cantidad).toFixed(2)
   ),
 }));
+
+  const detallePlagasHistorial = historialLote.flatMap((evaluacion) => {
+  const texto = String(evaluacion.plaga_enfermedad || "");
+
+  return texto
+    .replace(/\[foto:.*?\]/g, "")
+    .split("|")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((plagaTexto) => {
+      const match = plagaTexto.match(/^(.*?)\s*\(([\d.]+)%\s*-\s*(.*?)\)$/);
+
+      if (!match) return null;
+
+      return {
+        fecha: evaluacion.fecha
+          ? String(evaluacion.fecha).substring(0, 10).split("-").reverse().join("/")
+          : "-",
+        fechaOrden: evaluacion.fecha ? String(evaluacion.fecha).substring(0, 10) : "",
+        plaga: match[1].replace(/^\d+\.\s*/, "").trim(),
+        incidencia: Number(match[2]),
+        severidad: match[3].trim(),
+      };
+    })
+    .filter(Boolean);
+});
+
+const opcionesPlagasHistorial = [
+  ...new Set(detallePlagasHistorial.map((item) => item.plaga)),
+].sort();
+
+const plagaParaCurva =
+  plagaSeleccionada || opcionesPlagasHistorial[0] || "";
+
+const datosCurvaPlaga = detallePlagasHistorial
+  .filter((item) => item.plaga === plagaParaCurva)
+  .sort((a, b) => String(a.fechaOrden).localeCompare(String(b.fechaOrden)))
+  .map((item) => ({
+    fecha: item.fecha,
+    incidencia: item.incidencia,
+    severidad: item.severidad,
+  }));
+  
   const lotesFiltrados =
     lotes.filter((lote) => {
       const texto = `
