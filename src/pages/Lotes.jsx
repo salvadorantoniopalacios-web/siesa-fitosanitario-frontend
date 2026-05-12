@@ -1298,9 +1298,9 @@ const aplicacionesParaPlaga = aplicacionesLote
 
   {datosGraficaHistorial.length > 0 ? (
     <ResponsiveContainer
-      width="100%"
-      height={esMovil ? 200 : 260}
-    >
+  width="100%"
+  height={esMovil ? 180 : 320}
+>
       <LineChart
         data={datosGraficaHistorial}
       >
@@ -1339,33 +1339,45 @@ const aplicacionesParaPlaga = aplicacionesLote
       height={320}
     >
       <BarChart
-        data={datosImpactoPlagas}
-        layout="vertical"
-        margin={{
-          top: 10,
-          right: 20,
-          left: 40,
-          bottom: 10,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
+  data={datosImpactoPlagas}
+  layout={esMovil ? "horizontal" : "vertical"}
+  margin={{
+    top: 10,
+    right: 10,
+    left: esMovil ? 0 : 40,
+    bottom: 10,
+  }}
+>
+  <CartesianGrid strokeDasharray="3 3" />
 
-        <XAxis type="number" />
-
-        <YAxis
-          dataKey="plaga"
-          type="category"
-          width={220}
-        />
-
-        <Tooltip />
-
-        <Bar
-          dataKey="promedio"
-          fill="#dc2626"
-          radius={[0, 8, 8, 0]}
-        />
-      </BarChart>
+  {esMovil ? (
+    <>
+      <XAxis dataKey="plaga" tick={false} />
+      <YAxis type="number" />
+      <Tooltip />
+      <Bar
+        dataKey="promedio"
+        fill="#dc2626"
+        radius={[8, 8, 0, 0]}
+      />
+    </>
+  ) : (
+    <>
+      <XAxis type="number" />
+      <YAxis
+        dataKey="plaga"
+        type="category"
+        width={220}
+      />
+      <Tooltip />
+      <Bar
+        dataKey="promedio"
+        fill="#dc2626"
+        radius={[0, 8, 8, 0]}
+      />
+    </>
+  )}
+</BarChart>
     </ResponsiveContainer>
   ) : (
     <div style={styles.emptyHistory}>
@@ -1735,21 +1747,25 @@ filterSelect: {
   },
 
   modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background:
-      "rgba(15,23,42,0.55)",
-    zIndex: 100,
-    padding: "24px",
-  },
+  position: "fixed",
+  inset: 0,
+  background: "rgba(15,23,42,0.55)",
+  zIndex: 100,
+  padding: "8px",
+  overflowY: "auto",
+},
 
   modal: {
-    background: "#ffffff",
-    maxWidth: "1000px",
-    margin: "0 auto",
-    borderRadius: "22px",
-    padding: "24px",
-  },
+  background: "#ffffff",
+  width: "100%",
+  maxWidth: "1000px",
+  maxHeight: "92vh",
+  overflowY: "auto",
+  margin: "0 auto",
+  borderRadius: "18px",
+  padding: "16px",
+  boxSizing: "border-box",
+},
 
   modalHeader: {
     display: "flex",
@@ -1778,12 +1794,13 @@ filterSelect: {
   },
 
   chartBox: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: "18px",
-    padding: "18px",
-    marginBottom: "18px",
-  },
+  background: "#ffffff",
+  border: "1px solid #e2e8f0",
+  borderRadius: "16px",
+  padding: "12px",
+  marginBottom: "14px",
+  overflowX: "hidden",
+},
 
   chartTitle: {
     marginTop: 0,
