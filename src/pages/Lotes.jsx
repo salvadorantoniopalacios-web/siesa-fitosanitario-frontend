@@ -637,7 +637,7 @@ const datosCurvaPlaga = detallePlagasHistorial
     incidencia: item.incidencia,
     severidad: item.severidad,
   }));
-  
+
   const lotesFiltrados =
     lotes.filter((lote) => {
       const texto = `
@@ -1314,6 +1314,52 @@ const datosCurvaPlaga = detallePlagasHistorial
     </div>
   )}
 </div>
+<div style={styles.chartBox}>
+  <div style={styles.filterHeader}>
+    <h3 style={styles.chartTitle}>
+      Curva de comportamiento por plaga
+    </h3>
+
+    <select
+      style={styles.filterSelect}
+      value={plagaParaCurva}
+      onChange={(e) => setPlagaSeleccionada(e.target.value)}
+    >
+      {opcionesPlagasHistorial.map((plaga) => (
+        <option key={plaga} value={plaga}>
+          {plaga}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {datosCurvaPlaga.length > 0 ? (
+    <ResponsiveContainer width="100%" height={320}>
+      <LineChart data={datosCurvaPlaga}>
+        <CartesianGrid strokeDasharray="3 3" />
+
+        <XAxis dataKey="fecha" />
+
+        <YAxis />
+
+        <Tooltip />
+
+        <Line
+          type="monotone"
+          dataKey="incidencia"
+          stroke="#16a34a"
+          strokeWidth={4}
+          dot={{ r: 6 }}
+          activeDot={{ r: 8 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  ) : (
+    <div style={styles.emptyHistory}>
+      No hay información suficiente para esta plaga.
+    </div>
+  )}
+</div>
 
           </div>
         </div>
@@ -1433,7 +1479,22 @@ const styles = {
     outline: "none",
     background: "#ffffff",
   },
+  filterHeader: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "16px",
+  gap: "16px",
+  flexWrap: "wrap",
+},
 
+filterSelect: {
+  padding: "10px 14px",
+  borderRadius: "12px",
+  border: "1px solid #cbd5e1",
+  minWidth: "260px",
+  background: "#ffffff",
+},
   button: {
     padding: "12px 16px",
     borderRadius: "12px",
