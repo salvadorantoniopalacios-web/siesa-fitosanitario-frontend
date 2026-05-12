@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api/axiosConfig.js";
+import * as XLSX from "xlsx";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 const BACKEND_URL = import.meta.env.VITE_API_URL;
@@ -724,7 +725,47 @@ function Evaluaciones({ usuario }) {
           plaga.estado === "Activo"
       )
     : [];
+  const exportarExcel = () => {
+  const datos = evaluacionesFiltradas.map((e) => ({
+    Fecha: formatearFechaLocal(e.fecha),
+    Finca: e.finca || "-",
+    Lote: e.lote || "-",
+    Cultivo: e.cultivo || "-",
+    "Plaga/Enfermedad": (e.plaga_enfermedad || "-").replace(/\[foto:.*?\]/g, ""),
+    "Incidencia %": e.incidencia || 0,
+    Severidad: e.severidad || "-",
+    Riesgo: e.nivel_riesgo || "-",
+    Responsable: e.responsable || "-",
+    GPS:
+      e.latitud && e.longitud
+        ? `${e.latitud}, ${e.longitud}`
+        : "Sin GPS",
+    Evidencia: e.foto_url ? `${BACKEND_URL}${e.foto_url}` : "Sin foto",
+    Observaciones: e.observaciones || "-",
+  }));
 
+  const hoja = XLSX.utils.json_to_sheet(datos);
+
+  hoja["!cols"] = [
+    { wch: 14 },
+    { wch: 24 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 60 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 22 },
+    { wch: 28 },
+    { wch: 45 },
+    { wch: 45 },
+  ];
+
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, "Evaluaciones");
+
+  XLSX.writeFile(libro, "reporte-evaluaciones-fitosanitarias.xlsx");
+};
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Evaluaciones Fitosanitarias</h1>
@@ -1120,9 +1161,17 @@ function Evaluaciones({ usuario }) {
 
       <div style={styles.panel}>
         <div style={styles.tableHeader}>
-          <h2 style={styles.panelTitle}>Historial de evaluaciones</h2>
+  <h2 style={styles.panelTitle}>Historial de evaluaciones</h2>
 
-          <input
+  <button
+    type="button"
+    style={styles.excelButton}
+    onClick={exportarExcel}
+  >
+    📊 Descargar Excel
+  </button>
+
+  <input
             style={styles.search}
             placeholder="Buscar finca, lote, plaga, severidad, responsable, GPS o evidencia..."
             value={busqueda}
@@ -1531,6 +1580,16 @@ const styles = {
     gap: "16px",
     flexWrap: "wrap",
   },
+  excelButton: {
+  padding: "12px 16px",
+  borderRadius: "12px",
+  border: "none",
+  background: "#15803d",
+  color: "#ffffff",
+  fontWeight: "700",
+  cursor: "pointer",
+  fontSize: "14px",
+},
   search: {
     padding: "12px 14px",
     borderRadius: "12px",
