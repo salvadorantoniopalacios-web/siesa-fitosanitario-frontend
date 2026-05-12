@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  ReferenceLine,
 } from "recharts";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
@@ -23,6 +24,8 @@ function Lotes({ usuario }) {
   const [cultivos, setCultivos] = useState([]);
 
   const [evaluaciones, setEvaluaciones] = useState([]);
+
+  const [aplicaciones, setAplicaciones] = useState([]);
 
   const [busqueda, setBusqueda] = useState("");
 
@@ -186,7 +189,19 @@ function Lotes({ usuario }) {
         setEvaluaciones([]);
       }
     };
+  const cargarAplicaciones = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/applications`);
 
+    setAplicaciones(
+      Array.isArray(response.data) ? response.data : []
+    );
+  } catch (error) {
+    console.error("Error cargando aplicaciones:", error);
+    setAplicaciones([]);
+  }
+};
+    
   useEffect(() => {
   cargarFincas();
 
@@ -195,6 +210,8 @@ function Lotes({ usuario }) {
   cargarLotes();
 
   cargarEvaluaciones();
+
+  cargarAplicaciones();
   }, []);
 
   const obtenerUbicacionActual = () => {
@@ -539,7 +556,20 @@ function Lotes({ usuario }) {
               new Date(b.fecha)
           )
       : [];
-
+  const aplicacionesLote =
+  loteHistorial
+    ? aplicaciones
+        .filter(
+          (a) =>
+            Number(a.lot_id) ===
+            Number(loteHistorial.id)
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.fecha) -
+            new Date(b.fecha)
+        )
+    : [];
   const datosGraficaHistorial =
     historialLote.map((e) => ({
       fecha: e.fecha
@@ -636,6 +666,25 @@ const datosCurvaPlaga = detallePlagasHistorial
     fecha: item.fecha,
     incidencia: item.incidencia,
     severidad: item.severidad,
+  }));
+const aplicacionesParaPlaga = aplicacionesLote
+  .filter(
+    (app) =>
+      String(app.plaga_objetivo || "")
+        .toLowerCase()
+        .trim() ===
+      String(plagaParaCurva || "")
+        .toLowerCase()
+        .trim()
+  )
+  .map((app) => ({
+    fecha: app.fecha
+      ? String(app.fecha).substring(0, 10).split("-").reverse().join("/")
+      : "-",
+    producto: app.producto_aplicado || "-",
+    ingrediente: app.ingrediente_activo || "-",
+    dosis: app.dosis || "-",
+    unidad: app.unidad || "",
   }));
 
   const lotesFiltrados =
@@ -1352,11 +1401,71 @@ const datosCurvaPlaga = detallePlagasHistorial
           dot={{ r: 6 }}
           activeDot={{ r: 8 }}
         />
+        {aplicacionesParaPlaga.map((app, index) => (
+  <ReferenceLine
+    key={index}
+    x={app.fecha}
+    stroke="#dc2626"
+    strokeDasharray="4 4"
+    label={{
+      value: `💧 ${app.producto}`,
+      position: "top",
+      fill: "#991b1b",
+      fontSize: 12,
+    }}
+  />
+))}
       </LineChart>
     </ResponsiveContainer>
-  ) : (
+    ) : (
     <div style={styles.emptyHistory}>
       No hay información suficiente para esta plaga.
+    </div>
+  )}
+</div>
+
+<div style={styles.chartBox}>
+  <h3 style={styles.chartTitle}>
+    Aplicaciones registradas en este lote
+  </h3>
+
+  {aplicacionesLote.length > 0 ? (
+    <div style={styles.tableWrapper}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Fecha</th>
+            <th style={styles.th}>Plaga objetivo</th>
+            <th style={styles.th}>Producto</th>
+            <th style={styles.th}>Ingrediente activo</th>
+            <th style={styles.th}>Dosis</th>
+            <th style={styles.th}>Responsable</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {aplicacionesLote.map((app) => (
+            <tr key={app.id}>
+              <td style={styles.td}>
+                {app.fecha
+                  ? String(app.fecha).substring(0, 10).split("-").reverse().join("/")
+                  : "-"}
+              </td>
+              <td style={styles.td}>{app.plaga_objetivo || "-"}</td>
+              <td style={styles.td}>{app.producto_aplicado || "-"}</td>
+              <td style={styles.td}>{app.ingrediente_activo || "-"}</td>
+              <td style={styles.td}>
+                {app.dosis || "-"} {app.unidad || ""}
+              </td>
+              <td style={styles.td}>{app.responsable || "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div style={styles.emptyHistory}>
+      Este lote aún no tiene aplicaciones registradas.
     </div>
   )}
 </div>
