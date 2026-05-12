@@ -279,7 +279,7 @@ function Dashboard({ usuario }) {
       {vista === "fincas" && <Fincas usuario={usuario} />}
       {vista === "lotes" && <Lotes usuario={usuario} />}
       {vista === "evaluaciones" && <Evaluaciones usuario={usuario} />}
-      {vista === "evaluaciones" && <Evaluaciones usuario={usuario} />}
+      {vista === "aplicaciones" && <Aplicaciones usuario={usuario} />}
       {vista === "alertas" && <Alertas usuario={usuario} />}
       {vista === "mapa" && <MapaFincas usuario={usuario} />}
       {vista === "usuarios" && <Usuarios usuario={usuario} />}
