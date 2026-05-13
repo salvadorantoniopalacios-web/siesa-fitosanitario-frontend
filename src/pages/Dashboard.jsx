@@ -22,6 +22,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
+  LineChart,
+  Line,
 } from "recharts";
 
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
@@ -34,6 +36,11 @@ function Dashboard({ usuario }) {
     lotes: 0,
     evaluaciones: 0,
     alertas: 0,
+    evaluacionesPorRiesgo: [],
+    incidenciaPorFinca: [],
+    tendenciaSemanal: [],
+    topLotesCriticos: [],
+    topPlagas: [],
   });
 
   const [alertas, setAlertas] = useState([]);
@@ -43,7 +50,28 @@ function Dashboard({ usuario }) {
   const obtenerResumen = async () => {
     try {
       const res = await axios.get(`${API_URL}/dashboard/summary`);
-      setResumen(res.data);
+
+      setResumen({
+        fincas: Number(res.data.fincas || 0),
+        lotes: Number(res.data.lotes || 0),
+        evaluaciones: Number(res.data.evaluaciones || 0),
+        alertas: Number(res.data.alertas || 0),
+        evaluacionesPorRiesgo: Array.isArray(res.data.evaluacionesPorRiesgo)
+          ? res.data.evaluacionesPorRiesgo
+          : [],
+        incidenciaPorFinca: Array.isArray(res.data.incidenciaPorFinca)
+          ? res.data.incidenciaPorFinca
+          : [],
+        tendenciaSemanal: Array.isArray(res.data.tendenciaSemanal)
+          ? res.data.tendenciaSemanal
+          : [],
+        topLotesCriticos: Array.isArray(res.data.topLotesCriticos)
+          ? res.data.topLotesCriticos
+          : [],
+        topPlagas: Array.isArray(res.data.topPlagas)
+          ? res.data.topPlagas
+          : [],
+      });
     } catch (error) {
       console.error("Error cargando resumen:", error);
     }
@@ -156,6 +184,31 @@ function Dashboard({ usuario }) {
       total: evaluaciones.filter((e) => e.nivel_riesgo === "Bajo").length,
     },
   ];
+
+  const topPlagas = resumen.topPlagas.map((item) => ({
+    plaga: item.plaga,
+    total: Number(item.total || 0),
+  }));
+
+  const incidenciaPorFinca = resumen.incidenciaPorFinca.map((item) => ({
+    finca: item.finca,
+    incidencia_promedio: Number(item.incidencia_promedio || 0),
+    total_evaluaciones: Number(item.total_evaluaciones || 0),
+  }));
+
+  const tendenciaSemanal = resumen.tendenciaSemanal.map((item) => ({
+    semana: item.semana,
+    incidencia_promedio: Number(item.incidencia_promedio || 0),
+    total_evaluaciones: Number(item.total_evaluaciones || 0),
+  }));
+
+  const topLotesCriticos = resumen.topLotesCriticos.map((item) => ({
+    lote: item.lote,
+    finca: item.finca,
+    cultivo: item.cultivo,
+    total_alertas: Number(item.total_alertas || 0),
+    incidencia_promedio: Number(item.incidencia_promedio || 0),
+  }));
 
   return (
     <Layout
@@ -273,6 +326,108 @@ function Dashboard({ usuario }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          <div style={styles.executiveTitleBox}>
+            <h2 style={styles.executiveTitle}>Dashboard ejecutivo fitosanitario</h2>
+            <p style={styles.executiveSubtitle}>
+              Análisis operativo por plaga, finca, lote y tendencia semanal.
+            </p>
+          </div>
+
+          <div style={styles.grid}>
+            <div style={styles.panel}>
+              <h3 style={styles.panelTitle}>Top plagas más frecuentes</h3>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={topPlagas}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="plaga" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="total" fill="#0f766e" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={styles.panel}>
+              <h3 style={styles.panelTitle}>Incidencia promedio por finca</h3>
+
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={incidenciaPorFinca}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="finca" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="incidencia_promedio" fill="#ca8a04" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div style={styles.panel}>
+            <h3 style={styles.panelTitle}>Tendencia semanal de incidencia</h3>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={tendenciaSemanal}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="semana" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="incidencia_promedio"
+                  name="Incidencia promedio"
+                  stroke="#2563eb"
+                  strokeWidth={3}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={styles.panel}>
+            <h3 style={styles.panelTitle}>Top lotes críticos</h3>
+
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Lote</th>
+                    <th style={styles.th}>Finca</th>
+                    <th style={styles.th}>Cultivo</th>
+                    <th style={styles.th}>Alertas</th>
+                    <th style={styles.th}>Incidencia promedio</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {topLotesCriticos.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={styles.empty}>
+                        No hay lotes críticos registrados.
+                      </td>
+                    </tr>
+                  ) : (
+                    topLotesCriticos.map((item, index) => (
+                      <tr key={index}>
+                        <td style={styles.td}>{item.lote || "-"}</td>
+                        <td style={styles.td}>{item.finca || "-"}</td>
+                        <td style={styles.td}>{item.cultivo || "-"}</td>
+                        <td style={styles.td}>
+                          <span style={styles.badgeRed}>
+                            {item.total_alertas}
+                          </span>
+                        </td>
+                        <td style={styles.td}>
+                          {item.incidencia_promedio}%
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
 
@@ -361,6 +516,58 @@ const styles = {
     marginBottom: "18px",
     color: "#0f172a",
     fontSize: "20px",
+  },
+  executiveTitleBox: {
+    background: "#0f172a",
+    color: "#ffffff",
+    padding: "22px 24px",
+    borderRadius: "18px",
+    marginBottom: "20px",
+    boxShadow: "0 10px 24px rgba(15,23,42,0.18)",
+  },
+  executiveTitle: {
+    margin: 0,
+    fontSize: "23px",
+    fontWeight: "800",
+  },
+  executiveSubtitle: {
+    margin: "6px 0 0",
+    color: "#cbd5e1",
+    fontWeight: "500",
+  },
+  tableWrapper: {
+    overflowX: "auto",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+  th: {
+    padding: "14px",
+    textAlign: "left",
+    background: "#f1f5f9",
+    color: "#334155",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
+  },
+  td: {
+    padding: "14px",
+    borderBottom: "1px solid #e2e8f0",
+    color: "#334155",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
+  },
+  badgeRed: {
+    padding: "6px 12px",
+    borderRadius: "999px",
+    background: "#fee2e2",
+    color: "#991b1b",
+    fontWeight: "800",
+  },
+  empty: {
+    textAlign: "center",
+    padding: "28px",
+    color: "#64748b",
   },
 };
 
