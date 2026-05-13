@@ -753,7 +753,15 @@ function Evaluaciones({ usuario }) {
 
       return;
     }
+    const obtenerUrlFoto = (fotoUrl) => {
+  if (!fotoUrl) return "";
 
+  if (String(fotoUrl).startsWith("http")) {
+    return fotoUrl;
+  }
+
+  return `${BACKEND_URL}${fotoUrl}`;
+};
     plagas.forEach((plagaTexto) => {
       const match = plagaTexto.match(
         /^\d+\.\s*(.*?)\s*\(([\d.]+)%\s*-\s*(.*?)\)$/
@@ -781,7 +789,7 @@ function Evaluaciones({ usuario }) {
             : "Sin GPS",
 
         Evidencia: e.foto_url
-          ? `${BACKEND_URL}${e.foto_url}`
+          ? obtenerUrlFoto(e.foto_url)
           : "Sin foto",
 
         Observaciones:
@@ -1168,7 +1176,7 @@ function Evaluaciones({ usuario }) {
 
               {fotoActual && !foto && (
                 <a
-                  href={`${BACKEND_URL}${fotoActual}`}
+                  href={obtenerUrlFoto(fotoActual)}
                   target="_blank"
                   rel="noreferrer"
                   style={styles.currentPhotoLink}
@@ -1315,7 +1323,7 @@ function Evaluaciones({ usuario }) {
                     <td style={styles.td}>
                       {e.foto_url ? (
                         <a
-                          href={`${BACKEND_URL}${e.foto_url}`}
+                          href={obtenerUrlFoto(e.foto_url)}
                           target="_blank"
                           rel="noreferrer"
                           style={styles.photoButton}
