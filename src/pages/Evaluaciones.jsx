@@ -70,7 +70,15 @@ function Evaluaciones({ usuario }) {
 
     return true;
   };
+  const obtenerUrlFoto = (fotoUrl) => {
+  if (!fotoUrl) return "";
 
+  if (String(fotoUrl).startsWith("http")) {
+    return fotoUrl;
+  }
+
+  return `${BACKEND_URL}${fotoUrl}`;
+};
   const obtenerToken = () => {
     return (
       sessionStorage.getItem("token") ||
@@ -753,15 +761,7 @@ function Evaluaciones({ usuario }) {
 
       return;
     }
-    const obtenerUrlFoto = (fotoUrl) => {
-  if (!fotoUrl) return "";
 
-  if (String(fotoUrl).startsWith("http")) {
-    return fotoUrl;
-  }
-
-  return `${BACKEND_URL}${fotoUrl}`;
-};
     plagas.forEach((plagaTexto) => {
       const match = plagaTexto.match(
         /^\d+\.\s*(.*?)\s*\(([\d.]+)%\s*-\s*(.*?)\)$/
