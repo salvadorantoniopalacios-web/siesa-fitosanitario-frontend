@@ -8,6 +8,7 @@ import Alertas from "./Alertas.jsx";
 import MapaFincas from "./MapaFincas.jsx";
 import Usuarios from "./Usuarios.jsx";
 import Cultivos from "./Cultivos.jsx";
+import ConsultaIA from "./ConsultaIA.jsx";
 import Plagas from "./Plagas.jsx";
 import Aplicaciones from "./Aplicaciones.jsx";
 import {
@@ -123,6 +124,8 @@ function Dashboard({ usuario }) {
       ? "Usuarios"
       : vista === "cultivos"
       ? "Cultivos"
+      : vista === "consultaIA"
+      ? "Consulta IA"
       : vista === "plagas"
       ? "Plagas"
       : "Dashboard";
@@ -439,6 +442,7 @@ function Dashboard({ usuario }) {
       {vista === "mapa" && <MapaFincas usuario={usuario} />}
       {vista === "usuarios" && <Usuarios usuario={usuario} />}
       {vista === "cultivos" && <Cultivos usuario={usuario} />}
+      {vista === "consultaIA" && <ConsultaIA usuario={usuario} />}
       {vista === "plagas" && <Plagas usuario={usuario} />}
     </Layout>
   );
