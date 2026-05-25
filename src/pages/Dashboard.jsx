@@ -51,7 +51,7 @@ function Dashboard({ usuario }) {
 
   const obtenerResumen = async () => {
     try {
-      const res = await axios.get(`${API_URL}/dashboard/summary`);
+      const res = await axios.get("/dashboard/summary");
 
       setResumen({
         fincas: Number(res.data.fincas || 0),
@@ -82,9 +82,9 @@ function Dashboard({ usuario }) {
   const cargarDatosDashboard = async () => {
     try {
       const [resAlertas, resLotes, resEvaluaciones] = await Promise.all([
-        axios.get(`${API_URL}/alerts`),
-        axios.get(`${API_URL}/lots`),
-        axios.get(`${API_URL}/evaluations`),
+        axios.get("/alerts"),
+        axios.get("/lots"),
+        axios.get("/evaluations"),
       ]);
 
       setAlertas(Array.isArray(resAlertas.data) ? resAlertas.data : []);
@@ -98,9 +98,9 @@ function Dashboard({ usuario }) {
   };
 
   useEffect(() => {
-    obtenerResumen();
-    cargarDatosDashboard();
-  }, []);
+  obtenerResumen();
+  cargarDatosDashboard();
+}, [usuario?.company_id]);
 
   const alertasCriticas = alertas.filter(
     (a) => a.nivel_alerta === "Crítico"
