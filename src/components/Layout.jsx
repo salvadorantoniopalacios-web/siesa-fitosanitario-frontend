@@ -4,16 +4,26 @@ import axios from "axios";
 const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
-  const esAdmin = usuario?.rol?.toLowerCase() === "admin";
+  const rol = usuario?.rol || "";
+  const esAdmin = rol === "Admin" || rol?.toLowerCase() === "admin";
+  const esSuperAdmin = rol === "SuperAdmin";
+  const puedeVerUsuarios = esAdmin || esSuperAdmin;
+  const puedeVerEmpresas = esSuperAdmin;
+
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
   const [empresaActiva, setEmpresaActiva] = useState(
     usuario?.company_id ? String(usuario.company_id) : ""
   );
 
-  const empresasDisponibles = Array.isArray(usuario?.empresas_disponibles)
-    ? usuario.empresas_disponibles
-    : [];
+  const empresasDisponibles =
+    esSuperAdmin && Array.isArray(usuario?.empresas_disponibles)
+      ? usuario.empresas_disponibles
+      : [];
+
+  useEffect(() => {
+    setEmpresaActiva(usuario?.company_id ? String(usuario.company_id) : "");
+  }, [usuario?.company_id]);
 
   useEffect(() => {
     const detectarPantalla = () => {
@@ -46,24 +56,21 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
     try {
       setEmpresaActiva(companyId);
 
-      const usuarioGuardado = sessionStorage.getItem("usuario");
-      const usuarioActual = usuarioGuardado ? JSON.parse(usuarioGuardado) : usuario;
-
       const token =
-  sessionStorage.getItem("token") ||
-  localStorage.getItem("token");
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
 
-const res = await axios.post(
-  `${API_URL}/auth/switch-company`,
-  {
-    company_id: companyId,
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-);
+      const res = await axios.post(
+        `${API_URL}/auth/switch-company`,
+        {
+          company_id: companyId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("usuario", JSON.stringify(res.data.usuario));
@@ -153,7 +160,7 @@ const res = await axios.post(
             <strong>{usuario.nombre || usuario.email || "Usuario"}</strong>
             <span>{usuario.rol || "Sin rol"}</span>
 
-            {empresasDisponibles.length > 1 ? (
+            {esSuperAdmin && empresasDisponibles.length > 1 ? (
               <select
                 style={styles.companySelect}
                 value={empresaActiva}
@@ -194,8 +201,8 @@ const res = await axios.post(
 
           {opcionMenu("🗺️", "Mapa", "mapa")}
 
-          {esAdmin && opcionMenu("🏢", "Empresas", "empresas")}
-          {esAdmin && opcionMenu("👥", "Usuarios", "usuarios")}
+          {puedeVerEmpresas && opcionMenu("🏢", "Empresas", "empresas")}
+          {puedeVerUsuarios && opcionMenu("👥", "Usuarios", "usuarios")}
         </nav>
 
         <button type="button" style={styles.logoutButton} onClick={cerrarSesion}>
