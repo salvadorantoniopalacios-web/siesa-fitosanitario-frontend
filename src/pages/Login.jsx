@@ -4,29 +4,67 @@ import axios from "axios";
 function Login({ setUsuario }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [empresas, setEmpresas] = useState([]);
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState("");
+  const [credencialesValidadas, setCredencialesValidadas] = useState(false);
+
   const [mensaje, setMensaje] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const guardarSesion = (data) => {
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("usuario", JSON.stringify(data.usuario));
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+
+    setUsuario(data.usuario);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
+      setLoading(true);
+      setMensaje("");
+
+      const payload = {
+        email,
+        password,
+      };
+
+      if (empresaSeleccionada) {
+        payload.company_id = empresaSeleccionada;
+      }
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/login`,
-        {
-          email,
-          password,
-        }
+        payload
       );
-      console.log("RESPUESTA LOGIN:", res.data);
-      sessionStorage.setItem("token", res.data.token);
-      sessionStorage.setItem("usuario", JSON.stringify(res.data.usuario));
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario");
+      const empresasDisponibles =
+        res.data.usuario?.empresas_disponibles || [];
 
-      setUsuario(res.data.usuario);
+      if (
+        empresasDisponibles.length > 1 &&
+        !empresaSeleccionada &&
+        !credencialesValidadas
+      ) {
+        setEmpresas(empresasDisponibles);
+        setCredencialesValidadas(true);
+        setEmpresaSeleccionada(String(empresasDisponibles[0].id));
+        setMensaje("Seleccione la empresa con la que desea ingresar.");
+        return;
+      }
+
+      guardarSesion(res.data);
     } catch (error) {
-      setMensaje("Usuario o contraseña incorrectos");
+      setMensaje(
+        error.response?.data?.mensaje || "Usuario o contraseña incorrectos"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,20 +83,51 @@ function Login({ setUsuario }) {
             type="email"
             placeholder="Usuario / correo"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setCredencialesValidadas(false);
+              setEmpresas([]);
+              setEmpresaSeleccionada("");
+            }}
             style={styles.input}
+            disabled={loading}
           />
 
           <input
             type="password"
             placeholder="Contraseña"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setCredencialesValidadas(false);
+              setEmpresas([]);
+              setEmpresaSeleccionada("");
+            }}
             style={styles.input}
+            disabled={loading}
           />
 
-          <button type="submit" style={styles.button}>
-            Ingresar
+          {empresas.length > 1 && (
+            <select
+              style={styles.input}
+              value={empresaSeleccionada}
+              onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+              disabled={loading}
+            >
+              {empresas.map((empresa) => (
+                <option key={empresa.id} value={empresa.id}>
+                  {empresa.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading
+              ? "Validando..."
+              : empresas.length > 1
+              ? "Ingresar a empresa"
+              : "Ingresar"}
           </button>
 
           <p style={styles.forgot}>¿Olvidaste tu contraseña?</p>
@@ -154,6 +223,7 @@ const styles = {
   mensaje: {
     color: "#b91c1c",
     fontSize: "13px",
+    minHeight: "18px",
   },
 
   footer: {
