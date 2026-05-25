@@ -23,10 +23,25 @@ function Usuarios({ usuario }) {
     password: "",
     rol: "Técnico",
     activo: true,
-    company_id: "",
+    company_id: usuario?.company_id ? String(usuario.company_id) : "",
   });
 
-  const esAdmin = usuario?.rol?.toLowerCase() === "admin";
+  const esAdmin = usuario?.rol === "Admin";
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
+  const puedeAdministrar = esAdmin || esSuperAdmin;
+
+  const empresasVisibles = esSuperAdmin
+    ? empresas
+    : [
+        {
+          id: usuario?.company_id,
+          nombre: usuario?.empresa || usuario?.empresa_nombre || "Mi empresa",
+        },
+      ].filter((empresa) => empresa.id);
+
+  const obtenerToken = () => {
+    return sessionStorage.getItem("token") || localStorage.getItem("token");
+  };
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
@@ -45,9 +60,7 @@ function Usuarios({ usuario }) {
 
   const cargarEmpresas = async () => {
     try {
-      const token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token");
+      const token = obtenerToken();
 
       const res = await axios.get(`${API_URL}/companies`, {
         headers: {
@@ -66,9 +79,7 @@ function Usuarios({ usuario }) {
 
   const cargarUsuarios = async () => {
     try {
-      const token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token");
+      const token = obtenerToken();
 
       const res = await axios.get(`${API_URL}/users`, {
         headers: {
@@ -94,11 +105,11 @@ function Usuarios({ usuario }) {
   };
 
   useEffect(() => {
-    if (esAdmin) {
+    if (puedeAdministrar) {
       cargarUsuarios();
       cargarEmpresas();
     }
-  }, [esAdmin]);
+  }, [puedeAdministrar]);
 
   const limpiarFormulario = () => {
     setForm({
@@ -107,7 +118,7 @@ function Usuarios({ usuario }) {
       password: "",
       rol: "Técnico",
       activo: true,
-      company_id: "",
+      company_id: usuario?.company_id ? String(usuario.company_id) : "",
     });
 
     setEditandoId(null);
@@ -117,24 +128,13 @@ function Usuarios({ usuario }) {
   const validarFormulario = () => {
     limpiarMensaje();
 
-    if (!esAdmin) {
-      mostrarMensaje(
-        "Solo un usuario Admin puede administrar usuarios.",
-        "error"
-      );
+    if (!puedeAdministrar) {
+      mostrarMensaje("No tiene permisos para administrar usuarios.", "error");
       return false;
     }
 
-    if (
-      !form.nombre ||
-      !form.email ||
-      !form.rol ||
-      !form.company_id
-    ) {
-      mostrarMensaje(
-        "Nombre, email, rol y empresa son obligatorios.",
-        "error"
-      );
+    if (!form.nombre || !form.email || !form.rol || !form.company_id) {
+      mostrarMensaje("Nombre, email, rol y empresa son obligatorios.", "error");
       return false;
     }
 
@@ -166,9 +166,7 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token");
+      const token = obtenerToken();
 
       if (editandoId) {
         await axios.put(
@@ -201,8 +199,7 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        error.response?.data?.mensaje ||
-          "No se pudo guardar el usuario.",
+        error.response?.data?.mensaje || "No se pudo guardar el usuario.",
         "error"
       );
     } finally {
@@ -221,7 +218,7 @@ function Usuarios({ usuario }) {
       password: "",
       rol: u.rol || "Técnico",
       activo: u.activo === false ? false : true,
-      company_id: u.company_id || "",
+      company_id: u.company_id ? String(u.company_id) : "",
     });
 
     window.scrollTo({
@@ -244,9 +241,7 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token");
+      const token = obtenerToken();
 
       await axios.patch(
         `${API_URL}/users/${u.id}/toggle-status`,
@@ -259,9 +254,7 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        `Usuario ${
-          nuevoEstado ? "activado" : "desactivado"
-        } correctamente.`,
+        `Usuario ${nuevoEstado ? "activado" : "desactivado"} correctamente.`,
         "ok"
       );
 
@@ -292,9 +285,7 @@ function Usuarios({ usuario }) {
     try {
       setLoading(true);
 
-      const token =
-        sessionStorage.getItem("token") ||
-        localStorage.getItem("token");
+      const token = obtenerToken();
 
       await axios.delete(`${API_URL}/users/${id}`, {
         headers: {
@@ -312,8 +303,7 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        error.response?.data?.mensaje ||
-          "No se pudo eliminar el usuario.",
+        error.response?.data?.mensaje || "No se pudo eliminar el usuario.",
         "error"
       );
     } finally {
@@ -334,13 +324,14 @@ function Usuarios({ usuario }) {
   });
 
   const totalUsuarios = usuarios.length;
+  const totalSuperAdmin = usuarios.filter((u) => u.rol === "SuperAdmin").length;
   const totalAdmin = usuarios.filter((u) => u.rol === "Admin").length;
   const totalTecnicos = usuarios.filter((u) => u.rol === "Técnico").length;
   const totalConsulta = usuarios.filter((u) => u.rol === "Consulta").length;
   const totalActivos = usuarios.filter((u) => u.activo !== false).length;
   const totalInactivos = usuarios.filter((u) => u.activo === false).length;
 
-  if (!esAdmin) {
+  if (!puedeAdministrar) {
     return (
       <div style={styles.container}>
         <h1 style={styles.title}>Usuarios</h1>
@@ -364,9 +355,7 @@ function Usuarios({ usuario }) {
         <div
           style={{
             ...styles.messageBox,
-            ...(mensaje.tipo === "ok"
-              ? styles.messageOk
-              : styles.messageError),
+            ...(mensaje.tipo === "ok" ? styles.messageOk : styles.messageError),
           }}
         >
           {mensaje.texto}
@@ -378,6 +367,13 @@ function Usuarios({ usuario }) {
           <p style={styles.cardLabel}>Total usuarios</p>
           <h2 style={styles.cardNumber}>{totalUsuarios}</h2>
         </div>
+
+        {esSuperAdmin && (
+          <div style={styles.card}>
+            <p style={styles.cardLabel}>SuperAdmin</p>
+            <h2 style={styles.cardNumber}>{totalSuperAdmin}</h2>
+          </div>
+        )}
 
         <div style={styles.card}>
           <p style={styles.cardLabel}>Administradores</p>
@@ -446,11 +442,7 @@ function Usuarios({ usuario }) {
           <input
             style={styles.input}
             type="password"
-            placeholder={
-              editandoId
-                ? "Nueva contraseña (opcional)"
-                : "Contraseña"
-            }
+            placeholder={editandoId ? "Nueva contraseña (opcional)" : "Contraseña"}
             value={form.password}
             onChange={(e) => {
               limpiarMensaje();
@@ -472,6 +464,7 @@ function Usuarios({ usuario }) {
               });
             }}
           >
+            {esSuperAdmin && <option value="SuperAdmin">SuperAdmin</option>}
             <option value="Admin">Admin</option>
             <option value="Técnico">Técnico</option>
             <option value="Consulta">Consulta</option>
@@ -482,7 +475,6 @@ function Usuarios({ usuario }) {
             value={form.company_id}
             onChange={(e) => {
               limpiarMensaje();
-
               setForm({
                 ...form,
                 company_id: e.target.value,
@@ -491,7 +483,7 @@ function Usuarios({ usuario }) {
           >
             <option value="">Seleccione empresa</option>
 
-            {empresas.map((empresa) => (
+            {empresasVisibles.map((empresa) => (
               <option key={empresa.id} value={empresa.id}>
                 {empresa.nombre}
               </option>
@@ -504,7 +496,6 @@ function Usuarios({ usuario }) {
               value={form.activo ? "Activo" : "Inactivo"}
               onChange={(e) => {
                 limpiarMensaje();
-
                 setForm({
                   ...form,
                   activo: e.target.value === "Activo",
@@ -583,15 +574,15 @@ function Usuarios({ usuario }) {
 
                     <td style={styles.td}>{u.email || "-"}</td>
 
-                    <td style={styles.td}>
-                      {u.empresa || "Sin empresa"}
-                    </td>
+                    <td style={styles.td}>{u.empresa || "Sin empresa"}</td>
 
                     <td style={styles.td}>
                       <span
                         style={{
                           ...styles.badge,
-                          ...(u.rol === "Admin"
+                          ...(u.rol === "SuperAdmin"
+                            ? styles.badgeSuperAdmin
+                            : u.rol === "Admin"
                             ? styles.badgeAdmin
                             : u.rol === "Técnico"
                             ? styles.badgeTecnico
@@ -636,9 +627,7 @@ function Usuarios({ usuario }) {
                           }
                           disabled={loading}
                         >
-                          {u.activo === false
-                            ? "Activar"
-                            : "Desactivar"}
+                          {u.activo === false ? "Activar" : "Desactivar"}
                         </button>
 
                         <button
@@ -816,6 +805,11 @@ const styles = {
     borderRadius: "999px",
     fontWeight: "700",
     fontSize: "13px",
+  },
+
+  badgeSuperAdmin: {
+    background: "#ede9fe",
+    color: "#5b21b6",
   },
 
   badgeAdmin: {
