@@ -7,6 +7,7 @@ const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 function Usuarios({ usuario }) {
   const [usuarios, setUsuarios] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,7 @@ function Usuarios({ usuario }) {
     password: "",
     rol: "Técnico",
     activo: true,
+    company_id: "",
   });
 
   const esAdmin = usuario?.rol?.toLowerCase() === "admin";
@@ -41,11 +43,32 @@ function Usuarios({ usuario }) {
     });
   };
 
+  const cargarEmpresas = async () => {
+    try {
+      const token =
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
+
+      const res = await axios.get(`${API_URL}/companies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setEmpresas(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error(
+        "Error cargando empresas:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
   const cargarUsuarios = async () => {
     try {
       const token =
-  sessionStorage.getItem("token") ||
-  localStorage.getItem("token");
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
 
       const res = await axios.get(`${API_URL}/users`, {
         headers: {
@@ -73,6 +96,7 @@ function Usuarios({ usuario }) {
   useEffect(() => {
     if (esAdmin) {
       cargarUsuarios();
+      cargarEmpresas();
     }
   }, [esAdmin]);
 
@@ -83,6 +107,7 @@ function Usuarios({ usuario }) {
       password: "",
       rol: "Técnico",
       activo: true,
+      company_id: "",
     });
 
     setEditandoId(null);
@@ -100,8 +125,16 @@ function Usuarios({ usuario }) {
       return false;
     }
 
-    if (!form.nombre || !form.email || !form.rol) {
-      mostrarMensaje("Nombre, email y rol son obligatorios.", "error");
+    if (
+      !form.nombre ||
+      !form.email ||
+      !form.rol ||
+      !form.company_id
+    ) {
+      mostrarMensaje(
+        "Nombre, email, rol y empresa son obligatorios.",
+        "error"
+      );
       return false;
     }
 
@@ -122,6 +155,7 @@ function Usuarios({ usuario }) {
     password: form.password,
     rol: form.rol,
     activo: form.activo,
+    company_id: form.company_id,
   });
 
   const guardarUsuario = async (e) => {
@@ -133,8 +167,8 @@ function Usuarios({ usuario }) {
       setLoading(true);
 
       const token =
-  sessionStorage.getItem("token") ||
-  localStorage.getItem("token");
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
 
       if (editandoId) {
         await axios.put(
@@ -167,7 +201,8 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        error.response?.data?.mensaje || "No se pudo guardar el usuario.",
+        error.response?.data?.mensaje ||
+          "No se pudo guardar el usuario.",
         "error"
       );
     } finally {
@@ -186,6 +221,7 @@ function Usuarios({ usuario }) {
       password: "",
       rol: u.rol || "Técnico",
       activo: u.activo === false ? false : true,
+      company_id: u.company_id || "",
     });
 
     window.scrollTo({
@@ -198,7 +234,9 @@ function Usuarios({ usuario }) {
     const nuevoEstado = !u.activo;
 
     const confirmar = window.confirm(
-      `¿Está seguro que desea ${nuevoEstado ? "activar" : "desactivar"} este usuario?`
+      `¿Está seguro que desea ${
+        nuevoEstado ? "activar" : "desactivar"
+      } este usuario?`
     );
 
     if (!confirmar) return;
@@ -207,8 +245,8 @@ function Usuarios({ usuario }) {
       setLoading(true);
 
       const token =
-  sessionStorage.getItem("token") ||
-  localStorage.getItem("token");
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
 
       await axios.patch(
         `${API_URL}/users/${u.id}/toggle-status`,
@@ -221,7 +259,9 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        `Usuario ${nuevoEstado ? "activado" : "desactivado"} correctamente.`,
+        `Usuario ${
+          nuevoEstado ? "activado" : "desactivado"
+        } correctamente.`,
         "ok"
       );
 
@@ -253,8 +293,8 @@ function Usuarios({ usuario }) {
       setLoading(true);
 
       const token =
-  sessionStorage.getItem("token") ||
-  localStorage.getItem("token");
+        sessionStorage.getItem("token") ||
+        localStorage.getItem("token");
 
       await axios.delete(`${API_URL}/users/${id}`, {
         headers: {
@@ -272,7 +312,8 @@ function Usuarios({ usuario }) {
       );
 
       mostrarMensaje(
-        error.response?.data?.mensaje || "No se pudo eliminar el usuario.",
+        error.response?.data?.mensaje ||
+          "No se pudo eliminar el usuario.",
         "error"
       );
     } finally {
@@ -285,6 +326,7 @@ function Usuarios({ usuario }) {
       ${u.nombre || ""}
       ${u.email || ""}
       ${u.rol || ""}
+      ${u.empresa || ""}
       ${u.activo ? "activo" : "inactivo"}
     `.toLowerCase();
 
@@ -315,14 +357,16 @@ function Usuarios({ usuario }) {
       <h1 style={styles.title}>Usuarios</h1>
 
       <p style={styles.subtitle}>
-        Administración de accesos, roles, estados y permisos del sistema fitosanitario.
+        Administración de accesos, roles, estados y empresas.
       </p>
 
       {mensaje.texto && (
         <div
           style={{
             ...styles.messageBox,
-            ...(mensaje.tipo === "ok" ? styles.messageOk : styles.messageError),
+            ...(mensaje.tipo === "ok"
+              ? styles.messageOk
+              : styles.messageError),
           }}
         >
           {mensaje.texto}
@@ -403,7 +447,9 @@ function Usuarios({ usuario }) {
             style={styles.input}
             type="password"
             placeholder={
-              editandoId ? "Nueva contraseña (opcional)" : "Contraseña"
+              editandoId
+                ? "Nueva contraseña (opcional)"
+                : "Contraseña"
             }
             value={form.password}
             onChange={(e) => {
@@ -431,12 +477,34 @@ function Usuarios({ usuario }) {
             <option value="Consulta">Consulta</option>
           </select>
 
+          <select
+            style={styles.input}
+            value={form.company_id}
+            onChange={(e) => {
+              limpiarMensaje();
+
+              setForm({
+                ...form,
+                company_id: e.target.value,
+              });
+            }}
+          >
+            <option value="">Seleccione empresa</option>
+
+            {empresas.map((empresa) => (
+              <option key={empresa.id} value={empresa.id}>
+                {empresa.nombre}
+              </option>
+            ))}
+          </select>
+
           {editandoId && (
             <select
               style={styles.input}
               value={form.activo ? "Activo" : "Inactivo"}
               onChange={(e) => {
                 limpiarMensaje();
+
                 setForm({
                   ...form,
                   activo: e.target.value === "Activo",
@@ -482,7 +550,7 @@ function Usuarios({ usuario }) {
           <input
             style={styles.search}
             type="text"
-            placeholder="Buscar usuario, correo, rol o estado..."
+            placeholder="Buscar usuario, correo, rol o empresa..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
           />
@@ -494,6 +562,7 @@ function Usuarios({ usuario }) {
               <tr>
                 <th style={styles.th}>Nombre</th>
                 <th style={styles.th}>Correo</th>
+                <th style={styles.th}>Empresa</th>
                 <th style={styles.th}>Rol</th>
                 <th style={styles.th}>Estado</th>
                 <th style={styles.th}>Acciones</th>
@@ -503,7 +572,7 @@ function Usuarios({ usuario }) {
             <tbody>
               {usuariosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={styles.empty}>
+                  <td colSpan="6" style={styles.empty}>
                     No hay usuarios registrados.
                   </td>
                 </tr>
@@ -513,6 +582,10 @@ function Usuarios({ usuario }) {
                     <td style={styles.td}>{u.nombre || "-"}</td>
 
                     <td style={styles.td}>{u.email || "-"}</td>
+
+                    <td style={styles.td}>
+                      {u.empresa || "Sin empresa"}
+                    </td>
 
                     <td style={styles.td}>
                       <span
@@ -563,7 +636,9 @@ function Usuarios({ usuario }) {
                           }
                           disabled={loading}
                         >
-                          {u.activo === false ? "Activar" : "Desactivar"}
+                          {u.activo === false
+                            ? "Activar"
+                            : "Desactivar"}
                         </button>
 
                         <button
