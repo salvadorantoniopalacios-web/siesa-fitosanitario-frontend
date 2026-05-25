@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
   const esAdmin = usuario?.rol?.toLowerCase() === "admin";
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+  const [empresaActiva, setEmpresaActiva] = useState(
+    usuario?.company_id ? String(usuario.company_id) : ""
+  );
+
+  const empresasDisponibles = Array.isArray(usuario?.empresas_disponibles)
+    ? usuario.empresas_disponibles
+    : [];
 
   useEffect(() => {
     const detectarPantalla = () => {
@@ -32,6 +42,41 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
     window.location.reload();
   };
 
+  const cambiarEmpresaActiva = async (companyId) => {
+    try {
+      setEmpresaActiva(companyId);
+
+      const usuarioGuardado = sessionStorage.getItem("usuario");
+      const usuarioActual = usuarioGuardado ? JSON.parse(usuarioGuardado) : usuario;
+
+      const token =
+  sessionStorage.getItem("token") ||
+  localStorage.getItem("token");
+
+const res = await axios.post(
+  `${API_URL}/auth/switch-company`,
+  {
+    company_id: companyId,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
+
+      sessionStorage.setItem("token", res.data.token);
+      sessionStorage.setItem("usuario", JSON.stringify(res.data.usuario));
+
+      window.location.reload();
+    } catch (error) {
+      alert(
+        error.response?.data?.mensaje ||
+          "No se pudo cambiar la empresa activa. Cierre sesión e ingrese nuevamente."
+      );
+    }
+  };
+
   const cambiarVista = (vista) => {
     setVista(vista);
 
@@ -46,7 +91,11 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
   };
 
   const opcionMenu = (emoji, texto, vista, extra = null) => (
-    <button type="button" style={styles.menuButton} onClick={() => cambiarVista(vista)}>
+    <button
+      type="button"
+      style={styles.menuButton}
+      onClick={() => cambiarVista(vista)}
+    >
       <span>
         {emoji} {texto}
       </span>
@@ -103,9 +152,24 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
           <div style={styles.userBox}>
             <strong>{usuario.nombre || usuario.email || "Usuario"}</strong>
             <span>{usuario.rol || "Sin rol"}</span>
-            <span>
-              Empresa: {usuario.empresa || usuario.empresa_nombre || "Sin empresa"}
-            </span>
+
+            {empresasDisponibles.length > 1 ? (
+              <select
+                style={styles.companySelect}
+                value={empresaActiva}
+                onChange={(e) => cambiarEmpresaActiva(e.target.value)}
+              >
+                {empresasDisponibles.map((empresa) => (
+                  <option key={empresa.id} value={empresa.id}>
+                    {empresa.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span>
+                Empresa: {usuario.empresa || usuario.empresa_nombre || "Sin empresa"}
+              </span>
+            )}
           </div>
         )}
 
@@ -123,7 +187,9 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
             "🚨",
             "Alertas",
             "alertas",
-            alertasCriticas > 0 && <span style={styles.badge}>{alertasCriticas}</span>
+            alertasCriticas > 0 && (
+              <span style={styles.badge}>{alertasCriticas}</span>
+            )
           )}
 
           {opcionMenu("🗺️", "Mapa", "mapa")}
@@ -220,9 +286,21 @@ const styles = {
     marginBottom: "18px",
     display: "flex",
     flexDirection: "column",
-    gap: "5px",
+    gap: "7px",
     fontSize: "13px",
     border: "1px solid rgba(255,255,255,0.12)",
+  },
+
+  companySelect: {
+    width: "100%",
+    padding: "9px 10px",
+    borderRadius: "10px",
+    border: "1px solid rgba(255,255,255,0.25)",
+    background: "rgba(255,255,255,0.95)",
+    color: "#064e2b",
+    fontWeight: "700",
+    fontSize: "12px",
+    cursor: "pointer",
   },
 
   nav: {
