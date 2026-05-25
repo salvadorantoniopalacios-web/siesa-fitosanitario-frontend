@@ -10,6 +10,7 @@ import Usuarios from "./Usuarios.jsx";
 import Cultivos from "./Cultivos.jsx";
 import ConsultaIA from "./ConsultaIA.jsx";
 import Plagas from "./Plagas.jsx";
+import Empresas from "./Empresas.jsx";
 import Aplicaciones from "./Aplicaciones.jsx";
 import {
   BarChart,
@@ -124,11 +125,14 @@ function Dashboard({ usuario }) {
       ? "Usuarios"
       : vista === "cultivos"
       ? "Cultivos"
+      : vista === "empresas"
+      ? "Empresas"
       : vista === "consultaIA"
       ? "Consulta IA"
       : vista === "plagas"
       ? "Plagas"
       : "Dashboard";
+      
 
   const alertasPorNivel = [
     {
@@ -443,6 +447,7 @@ function Dashboard({ usuario }) {
       {vista === "usuarios" && <Usuarios usuario={usuario} />}
       {vista === "cultivos" && <Cultivos usuario={usuario} />}
       {vista === "consultaIA" && <ConsultaIA usuario={usuario} />}
+      {vista === "empresas" && <Empresas usuario={usuario} />}
       {vista === "plagas" && <Plagas usuario={usuario} />}
     </Layout>
   );

@@ -103,6 +103,9 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
           <div style={styles.userBox}>
             <strong>{usuario.nombre || usuario.email || "Usuario"}</strong>
             <span>{usuario.rol || "Sin rol"}</span>
+            <span>
+              Empresa: {usuario.empresa || usuario.empresa_nombre || "Sin empresa"}
+            </span>
           </div>
         )}
 
@@ -125,6 +128,7 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
 
           {opcionMenu("🗺️", "Mapa", "mapa")}
 
+          {esAdmin && opcionMenu("🏢", "Empresas", "empresas")}
           {esAdmin && opcionMenu("👥", "Usuarios", "usuarios")}
         </nav>
 

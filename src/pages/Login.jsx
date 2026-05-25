@@ -17,7 +17,7 @@ function Login({ setUsuario }) {
           password,
         }
       );
-
+      console.log("RESPUESTA LOGIN:", res.data);
       sessionStorage.setItem("token", res.data.token);
       sessionStorage.setItem("usuario", JSON.stringify(res.data.usuario));
 
