@@ -18,10 +18,15 @@ function Plagas({ usuario }) {
     estado: "Activo",
   });
 
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
   const esAdmin = usuario?.rol === "Admin";
   const esTecnico = usuario?.rol === "Técnico";
-  const puedeCrearEditar = esAdmin || esTecnico;
-  const puedeEliminar = esAdmin;
+
+  const puedeCrearEditar =
+  esSuperAdmin || esAdmin || esTecnico;
+
+  const puedeEliminar =
+  esSuperAdmin || esAdmin;
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
@@ -125,7 +130,7 @@ function Plagas({ usuario }) {
 
   const eliminarPlaga = async (id) => {
     if (!puedeEliminar) {
-      mostrarMensaje("Solo un usuario Admin puede eliminar plagas.", "error");
+      mostrarMensaje("No tiene permisos para eliminar plagas.", "error");
       return;
     }
 

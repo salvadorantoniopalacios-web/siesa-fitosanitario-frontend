@@ -20,12 +20,13 @@ function Aplicaciones({ usuario }) {
     tipo: "",
   });
 
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
   const esAdmin = usuario?.rol === "Admin";
   const esTecnico = usuario?.rol === "Técnico";
   const esConsulta = usuario?.rol === "Consulta";
 
-  const puedeCrearEditar = esAdmin || esTecnico;
-  const puedeEliminar = esAdmin;
+  const puedeCrearEditar = esSuperAdmin || esAdmin || esTecnico;
+  const puedeEliminar = esSuperAdmin || esAdmin;
 
   const [form, setForm] = useState({
     fecha: "",
@@ -387,7 +388,7 @@ function Aplicaciones({ usuario }) {
 
   const eliminarAplicacion = async (id) => {
     if (!puedeEliminar) {
-      mostrarMensaje("Solo un usuario Admin puede eliminar aplicaciones.", "error");
+      mostrarMensaje("No tiene permisos para eliminar aplicaciones.", "error");
       return;
     }
 

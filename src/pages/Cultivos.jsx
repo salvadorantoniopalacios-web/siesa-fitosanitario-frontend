@@ -15,10 +15,12 @@ function Cultivos({ usuario }) {
     estado: "Activo",
   });
 
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
   const esAdmin = usuario?.rol === "Admin";
   const esTecnico = usuario?.rol === "Técnico";
-  const puedeCrearEditar = esAdmin || esTecnico;
-  const puedeEliminar = esAdmin;
+
+  const puedeCrearEditar = esSuperAdmin || esAdmin || esTecnico;
+  const puedeEliminar = esSuperAdmin || esAdmin;
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
@@ -107,7 +109,7 @@ function Cultivos({ usuario }) {
 
   const eliminarCultivo = async (id) => {
     if (!puedeEliminar) {
-      mostrarMensaje("Solo un usuario Admin puede eliminar cultivos.", "error");
+      mostrarMensaje("No tiene permisos para eliminar cultivos.", "error");
       return;
     }
 

@@ -42,18 +42,20 @@ function Lotes({ usuario }) {
     useState(null);
   const [plagaSeleccionada, setPlagaSeleccionada] = useState("");
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
+
   const esAdmin = usuario?.rol === "Admin";
 
   const esTecnico =
-    usuario?.rol === "Técnico";
+  usuario?.rol === "Técnico";
 
   const esConsulta =
-    usuario?.rol === "Consulta";
+  usuario?.rol === "Consulta";
 
   const puedeCrearEditar =
-    esAdmin || esTecnico;
+  esSuperAdmin || esAdmin || esTecnico;
 
-  const puedeEliminar = esAdmin;
+  const puedeEliminar = esSuperAdmin || esAdmin;
 
   const [form, setForm] = useState({
     codigo: "",
@@ -464,7 +466,7 @@ function Lotes({ usuario }) {
   ) => {
     if (!puedeEliminar) {
       mostrarMensaje(
-        "Solo un usuario Admin puede eliminar lotes.",
+        "No tiene permisos para eliminar lotes.",
         "error"
       );
 
