@@ -32,52 +32,10 @@ import {
 function Dashboard({ usuario }) {
   const [vista, setVista] = useState("inicio");
 
-  const [resumen, setResumen] = useState({
-    fincas: 0,
-    lotes: 0,
-    evaluaciones: 0,
-    alertas: 0,
-    evaluacionesPorRiesgo: [],
-    incidenciaPorFinca: [],
-    tendenciaSemanal: [],
-    topLotesCriticos: [],
-    topPlagas: [],
-  });
-
   const [fincas, setFincas] = useState([]);
   const [alertas, setAlertas] = useState([]);
   const [lotes, setLotes] = useState([]);
   const [evaluaciones, setEvaluaciones] = useState([]);
-
-  const obtenerResumen = async () => {
-    try {
-      const res = await axios.get("/dashboard/summary");
-
-      setResumen({
-        fincas: Number(res.data.fincas || 0),
-        lotes: Number(res.data.lotes || 0),
-        evaluaciones: Number(res.data.evaluaciones || 0),
-        alertas: Number(res.data.alertas || 0),
-        evaluacionesPorRiesgo: Array.isArray(res.data.evaluacionesPorRiesgo)
-          ? res.data.evaluacionesPorRiesgo
-          : [],
-        incidenciaPorFinca: Array.isArray(res.data.incidenciaPorFinca)
-          ? res.data.incidenciaPorFinca
-          : [],
-        tendenciaSemanal: Array.isArray(res.data.tendenciaSemanal)
-          ? res.data.tendenciaSemanal
-          : [],
-        topLotesCriticos: Array.isArray(res.data.topLotesCriticos)
-          ? res.data.topLotesCriticos
-          : [],
-        topPlagas: Array.isArray(res.data.topPlagas)
-          ? res.data.topPlagas
-          : [],
-      });
-    } catch (error) {
-      console.error("Error cargando resumen:", error.response?.data || error.message);
-    }
-  };
 
   const cargarDatosDashboard = async () => {
     try {
@@ -104,9 +62,31 @@ function Dashboard({ usuario }) {
   };
 
   useEffect(() => {
-    obtenerResumen();
     cargarDatosDashboard();
   }, [usuario?.company_id]);
+
+  const limpiarNombrePlaga = (texto) => {
+    if (!texto) return "Sin especificar";
+
+    const sinFoto = String(texto).replace(/\[foto:.*?\]/g, "").trim();
+    const sinNumero = sinFoto.replace(/^\d+\.\s*/, "").trim();
+    const match = sinNumero.match(/^(.*?)\s*\(/);
+
+    return match ? match[1].trim() : sinNumero;
+  };
+
+  const obtenerSemana = (fechaValor) => {
+    if (!fechaValor) return "Sin fecha";
+
+    const fecha = new Date(fechaValor);
+    if (Number.isNaN(fecha.getTime())) return "Sin fecha";
+
+    const dia = fecha.getUTCDay();
+    const diferencia = dia === 0 ? -6 : 1 - dia;
+    fecha.setUTCDate(fecha.getUTCDate() + diferencia);
+
+    return fecha.toISOString().substring(0, 10);
+  };
 
   const alertasCriticas = alertas.filter(
     (a) => a.nivel_alerta === "Crítico"
@@ -197,30 +177,119 @@ function Dashboard({ usuario }) {
     },
   ];
 
-  const topPlagas = resumen.topPlagas.map((item) => ({
-    plaga: item.plaga,
-    total: Number(item.total || 0),
-  }));
+  const topPlagas = Object.values(
+    evaluaciones.reduce((acc, evaluacion) => {
+      const partes = String(evaluacion.plaga_enfermedad || "")
+        .split("|")
+        .map((item) => item.trim())
+        .filter(Boolean);
 
-  const incidenciaPorFinca = resumen.incidenciaPorFinca.map((item) => ({
-    finca: item.finca,
-    incidencia_promedio: Number(item.incidencia_promedio || 0),
-    total_evaluaciones: Number(item.total_evaluaciones || 0),
-  }));
+      partes.forEach((parte) => {
+        const plaga = limpiarNombrePlaga(parte);
 
-  const tendenciaSemanal = resumen.tendenciaSemanal.map((item) => ({
-    semana: item.semana,
-    incidencia_promedio: Number(item.incidencia_promedio || 0),
-    total_evaluaciones: Number(item.total_evaluaciones || 0),
-  }));
+        if (!acc[plaga]) {
+          acc[plaga] = {
+            plaga,
+            total: 0,
+          };
+        }
 
-  const topLotesCriticos = resumen.topLotesCriticos.map((item) => ({
-    lote: item.lote,
-    finca: item.finca,
-    cultivo: item.cultivo,
-    total_alertas: Number(item.total_alertas || 0),
-    incidencia_promedio: Number(item.incidencia_promedio || 0),
-  }));
+        acc[plaga].total += 1;
+      });
+
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const incidenciaPorFinca = Object.values(
+    evaluaciones.reduce((acc, evaluacion) => {
+      const finca = evaluacion.finca || "Sin finca";
+
+      if (!acc[finca]) {
+        acc[finca] = {
+          finca,
+          suma: 0,
+          total_evaluaciones: 0,
+        };
+      }
+
+      acc[finca].suma += Number(evaluacion.incidencia || 0);
+      acc[finca].total_evaluaciones += 1;
+
+      return acc;
+    }, {})
+  )
+    .map((item) => ({
+      finca: item.finca,
+      incidencia_promedio: Number(
+        (item.suma / item.total_evaluaciones).toFixed(2)
+      ),
+      total_evaluaciones: item.total_evaluaciones,
+    }))
+    .sort((a, b) => b.incidencia_promedio - a.incidencia_promedio)
+    .slice(0, 10);
+
+  const tendenciaSemanal = Object.values(
+    evaluaciones.reduce((acc, evaluacion) => {
+      const semana = obtenerSemana(evaluacion.fecha);
+
+      if (!acc[semana]) {
+        acc[semana] = {
+          semana,
+          suma: 0,
+          total_evaluaciones: 0,
+        };
+      }
+
+      acc[semana].suma += Number(evaluacion.incidencia || 0);
+      acc[semana].total_evaluaciones += 1;
+
+      return acc;
+    }, {})
+  )
+    .map((item) => ({
+      semana: item.semana,
+      incidencia_promedio: Number(
+        (item.suma / item.total_evaluaciones).toFixed(2)
+      ),
+      total_evaluaciones: item.total_evaluaciones,
+    }))
+    .sort((a, b) => String(a.semana).localeCompare(String(b.semana)))
+    .slice(-12);
+
+  const topLotesCriticos = Object.values(
+    evaluaciones
+      .filter((e) => e.nivel_riesgo === "Alto" || e.nivel_riesgo === "Crítico")
+      .reduce((acc, evaluacion) => {
+        const key = `${evaluacion.lote}-${evaluacion.finca}-${evaluacion.cultivo}`;
+
+        if (!acc[key]) {
+          acc[key] = {
+            lote: evaluacion.lote || "-",
+            finca: evaluacion.finca || "-",
+            cultivo: evaluacion.cultivo || "-",
+            total_alertas: 0,
+            suma: 0,
+          };
+        }
+
+        acc[key].total_alertas += 1;
+        acc[key].suma += Number(evaluacion.incidencia || 0);
+
+        return acc;
+      }, {})
+  )
+    .map((item) => ({
+      lote: item.lote,
+      finca: item.finca,
+      cultivo: item.cultivo,
+      total_alertas: item.total_alertas,
+      incidencia_promedio: Number((item.suma / item.total_alertas).toFixed(2)),
+    }))
+    .sort((a, b) => b.total_alertas - a.total_alertas)
+    .slice(0, 10);
 
   return (
     <Layout
@@ -249,42 +318,25 @@ function Dashboard({ usuario }) {
           <div style={styles.cards}>
             <div style={styles.card}>
               <span style={styles.icon}>🌱</span>
-              <strong style={styles.number}>{fincas.length || resumen.fincas}</strong>
+              <strong style={styles.number}>{fincas.length}</strong>
               <span style={styles.label}>Fincas</span>
             </div>
 
             <div style={styles.card}>
               <span style={styles.icon}>🧾</span>
-              <strong style={styles.number}>{lotes.length || resumen.lotes}</strong>
+              <strong style={styles.number}>{lotes.length}</strong>
               <span style={styles.label}>Lotes</span>
             </div>
 
             <div style={styles.card}>
               <span style={styles.icon}>📊</span>
-              <strong style={styles.number}>
-                {evaluaciones.length || resumen.evaluaciones}
-              </strong>
+              <strong style={styles.number}>{evaluaciones.length}</strong>
               <span style={styles.label}>Evaluaciones</span>
             </div>
 
-            <div
-              style={{
-                ...styles.card,
-                border:
-                  alertasCriticas > 0
-                    ? "1px solid #fecaca"
-                    : "1px solid transparent",
-              }}
-            >
+            <div style={styles.card}>
               <span style={styles.icon}>🔔</span>
-              <strong
-                style={{
-                  ...styles.number,
-                  color: alertasCriticas > 0 ? "#dc2626" : "#0f172a",
-                }}
-              >
-                {alertas.length || resumen.alertas}
-              </strong>
+              <strong style={styles.number}>{alertas.length}</strong>
               <span style={styles.label}>Alertas</span>
             </div>
           </div>
