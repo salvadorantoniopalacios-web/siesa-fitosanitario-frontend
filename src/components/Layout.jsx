@@ -37,7 +37,15 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
       window.removeEventListener("resize", detectarPantalla);
     };
   }, []);
+    const empresaSeleccionada = empresasDisponibles.find(
+  (empresa) => String(empresa.id) === String(empresaActiva)
+);
 
+const logoEmpresa =
+  empresaSeleccionada?.logo_url ||
+  usuario?.empresa_activa?.logo_url ||
+  usuario?.logo_url ||
+  "";
   const cerrarSesion = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("usuario");
@@ -153,7 +161,13 @@ function Layout({ children, setVista, alertasCriticas = 0, usuario }) {
           </button>
         )}
 
-        <h2 style={styles.logo}>🌿 SIESA</h2>
+        <div style={styles.logoBox}>
+  {logoEmpresa ? (
+    <img src={logoEmpresa} alt="Logo empresa" style={styles.logoImage} />
+  ) : (
+    <h2 style={styles.logo}>🌿 SIESA</h2>
+  )}
+</div>
 
         {usuario && (
           <div style={styles.userBox}>
@@ -285,7 +299,21 @@ const styles = {
     fontWeight: "900",
     letterSpacing: "0.5px",
   },
+  logoBox: {
+  margin: "8px 0 20px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+},
 
+logoImage: {
+  width: "120px",
+  maxHeight: "70px",
+  objectFit: "contain",
+  background: "#ffffff",
+  borderRadius: "14px",
+  padding: "8px",
+},
   userBox: {
     background: "rgba(255,255,255,0.12)",
     padding: "14px",
