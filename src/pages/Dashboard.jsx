@@ -12,6 +12,7 @@ import ConsultaIA from "./ConsultaIA.jsx";
 import Plagas from "./Plagas.jsx";
 import Empresas from "./Empresas.jsx";
 import Aplicaciones from "./Aplicaciones.jsx";
+
 import {
   BarChart,
   Bar,
@@ -28,8 +29,6 @@ import {
   Line,
 } from "recharts";
 
-const API_URL = `${import.meta.env.VITE_API_URL}/api`;
-
 function Dashboard({ usuario }) {
   const [vista, setVista] = useState("inicio");
 
@@ -45,6 +44,7 @@ function Dashboard({ usuario }) {
     topPlagas: [],
   });
 
+  const [fincas, setFincas] = useState([]);
   const [alertas, setAlertas] = useState([]);
   const [lotes, setLotes] = useState([]);
   const [evaluaciones, setEvaluaciones] = useState([]);
@@ -75,32 +75,38 @@ function Dashboard({ usuario }) {
           : [],
       });
     } catch (error) {
-      console.error("Error cargando resumen:", error);
+      console.error("Error cargando resumen:", error.response?.data || error.message);
     }
   };
 
   const cargarDatosDashboard = async () => {
     try {
-      const [resAlertas, resLotes, resEvaluaciones] = await Promise.all([
-        axios.get("/alerts"),
-        axios.get("/lots"),
-        axios.get("/evaluations"),
-      ]);
+      const [resFincas, resAlertas, resLotes, resEvaluaciones] =
+        await Promise.all([
+          axios.get("/farms"),
+          axios.get("/alerts"),
+          axios.get("/lots"),
+          axios.get("/evaluations"),
+        ]);
 
+      setFincas(Array.isArray(resFincas.data) ? resFincas.data : []);
       setAlertas(Array.isArray(resAlertas.data) ? resAlertas.data : []);
       setLotes(Array.isArray(resLotes.data) ? resLotes.data : []);
       setEvaluaciones(
         Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : []
       );
     } catch (error) {
-      console.error("Error cargando datos dashboard:", error);
+      console.error(
+        "Error cargando datos dashboard:",
+        error.response?.data || error.message
+      );
     }
   };
 
   useEffect(() => {
-  obtenerResumen();
-  cargarDatosDashboard();
-}, [usuario?.company_id]);
+    obtenerResumen();
+    cargarDatosDashboard();
+  }, [usuario?.company_id]);
 
   const alertasCriticas = alertas.filter(
     (a) => a.nivel_alerta === "Crítico"
@@ -132,7 +138,6 @@ function Dashboard({ usuario }) {
       : vista === "plagas"
       ? "Plagas"
       : "Dashboard";
-      
 
   const alertasPorNivel = [
     {
@@ -244,19 +249,21 @@ function Dashboard({ usuario }) {
           <div style={styles.cards}>
             <div style={styles.card}>
               <span style={styles.icon}>🌱</span>
-              <strong style={styles.number}>{resumen.fincas}</strong>
+              <strong style={styles.number}>{fincas.length || resumen.fincas}</strong>
               <span style={styles.label}>Fincas</span>
             </div>
 
             <div style={styles.card}>
               <span style={styles.icon}>🧾</span>
-              <strong style={styles.number}>{resumen.lotes}</strong>
+              <strong style={styles.number}>{lotes.length || resumen.lotes}</strong>
               <span style={styles.label}>Lotes</span>
             </div>
 
             <div style={styles.card}>
               <span style={styles.icon}>📊</span>
-              <strong style={styles.number}>{resumen.evaluaciones}</strong>
+              <strong style={styles.number}>
+                {evaluaciones.length || resumen.evaluaciones}
+              </strong>
               <span style={styles.label}>Evaluaciones</span>
             </div>
 
@@ -276,7 +283,7 @@ function Dashboard({ usuario }) {
                   color: alertasCriticas > 0 ? "#dc2626" : "#0f172a",
                 }}
               >
-                {resumen.alertas}
+                {alertas.length || resumen.alertas}
               </strong>
               <span style={styles.label}>Alertas</span>
             </div>
@@ -425,9 +432,7 @@ function Dashboard({ usuario }) {
                             {item.total_alertas}
                           </span>
                         </td>
-                        <td style={styles.td}>
-                          {item.incidencia_promedio}%
-                        </td>
+                        <td style={styles.td}>{item.incidencia_promedio}%</td>
                       </tr>
                     ))
                   )}
