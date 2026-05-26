@@ -11,12 +11,13 @@ function Fincas({ usuario }) {
   const [obteniendoGps, setObteniendoGps] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
   const esAdmin = usuario?.rol === "Admin";
   const esTecnico = usuario?.rol === "Técnico";
   const esConsulta = usuario?.rol === "Consulta";
 
-  const puedeCrearEditar = esAdmin || esTecnico;
-  const puedeEliminar = esAdmin;
+  const puedeCrearEditar = esSuperAdmin || esAdmin || esTecnico;
+  const puedeEliminar = esSuperAdmin || esAdmin;
 
   const [form, setForm] = useState({
     nombre: "",
@@ -253,7 +254,7 @@ function Fincas({ usuario }) {
 
   const eliminarFinca = async (id) => {
     if (!puedeEliminar) {
-      mostrarMensaje("Solo un usuario Admin puede eliminar fincas.", "error");
+      mostrarMensaje("No tiene permisos para eliminar fincas.", "error");
       return;
     }
 
