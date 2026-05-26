@@ -8,6 +8,7 @@ function Empresas({ usuario }) {
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [logo, setLogo] = useState(null);
 
   const [mensaje, setMensaje] = useState({
     texto: "",
@@ -42,6 +43,13 @@ function Empresas({ usuario }) {
   const getHeaders = () => ({
     headers: {
       Authorization: `Bearer ${obtenerToken()}`,
+    },
+  });
+
+  const getMultipartHeaders = () => ({
+    headers: {
+      Authorization: `Bearer ${obtenerToken()}`,
+      "Content-Type": "multipart/form-data",
     },
   });
 
@@ -99,8 +107,49 @@ function Empresas({ usuario }) {
       activo: true,
     });
 
+    setLogo(null);
     setEditandoId(null);
     limpiarMensaje();
+
+    const inputLogo = document.getElementById("logo-empresa");
+    if (inputLogo) inputLogo.value = "";
+  };
+
+  const validarImagen = (archivo) => {
+    if (!archivo) return true;
+
+    const tiposPermitidos = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+
+    if (!tiposPermitidos.includes(archivo.type)) {
+      mostrarMensaje("Solo se permiten imágenes JPG, PNG o WEBP.", "error");
+      return false;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      mostrarMensaje("El logo no debe superar 5 MB.", "error");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleLogoChange = (e) => {
+    limpiarMensaje();
+
+    const archivo = e.target.files[0];
+
+    if (!archivo) {
+      setLogo(null);
+      return;
+    }
+
+    if (!validarImagen(archivo)) {
+      e.target.value = "";
+      setLogo(null);
+      return;
+    }
+
+    setLogo(archivo);
   };
 
   const validarFormulario = () => {
@@ -124,14 +173,22 @@ function Empresas({ usuario }) {
     return true;
   };
 
-  const prepararDataEmpresa = () => ({
-    nombre: form.nombre.trim(),
-    nit: form.nit.trim(),
-    direccion: form.direccion.trim(),
-    telefono: form.telefono.trim(),
-    logo_url: form.logo_url.trim(),
-    activo: form.activo,
-  });
+  const prepararDataEmpresa = () => {
+    const data = new FormData();
+
+    data.append("nombre", form.nombre.trim());
+    data.append("nit", form.nit.trim());
+    data.append("direccion", form.direccion.trim());
+    data.append("telefono", form.telefono.trim());
+    data.append("logo_url", form.logo_url.trim());
+    data.append("activo", form.activo);
+
+    if (logo) {
+      data.append("logo", logo);
+    }
+
+    return data;
+  };
 
   const guardarEmpresa = async (e) => {
     e.preventDefault();
@@ -145,7 +202,7 @@ function Empresas({ usuario }) {
         await axios.put(
           `${API_URL}/companies/${editandoId}`,
           prepararDataEmpresa(),
-          getHeaders()
+          getMultipartHeaders()
         );
 
         mostrarMensaje("Empresa actualizada correctamente.", "ok");
@@ -153,7 +210,7 @@ function Empresas({ usuario }) {
         await axios.post(
           `${API_URL}/companies`,
           prepararDataEmpresa(),
-          getHeaders()
+          getMultipartHeaders()
         );
 
         mostrarMensaje("Empresa creada correctamente.", "ok");
@@ -177,6 +234,7 @@ function Empresas({ usuario }) {
     limpiarMensaje();
 
     setEditandoId(empresa.id);
+    setLogo(null);
 
     setForm({
       nombre: empresa.nombre || "",
@@ -186,6 +244,9 @@ function Empresas({ usuario }) {
       logo_url: empresa.logo_url || "",
       activo: empresa.activo === false ? false : true,
     });
+
+    const inputLogo = document.getElementById("logo-empresa");
+    if (inputLogo) inputLogo.value = "";
 
     window.scrollTo({
       top: 0,
@@ -348,16 +409,38 @@ function Empresas({ usuario }) {
             }}
           />
 
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="URL del logo"
-            value={form.logo_url}
-            onChange={(e) => {
-              limpiarMensaje();
-              setForm({ ...form, logo_url: e.target.value });
-            }}
-          />
+          <div style={styles.fileBox}>
+            <label style={styles.fileLabel}>Logo de empresa</label>
+
+            <input
+              id="logo-empresa"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={handleLogoChange}
+              style={styles.fileInput}
+            />
+
+            <span style={styles.fileHelp}>
+              JPG, PNG o WEBP. Máximo 5 MB.
+            </span>
+
+            {logo && (
+              <span style={styles.fileSelected}>
+                Logo seleccionado: {logo.name}
+              </span>
+            )}
+
+            {form.logo_url && !logo && (
+              <a
+                href={form.logo_url}
+                target="_blank"
+                rel="noreferrer"
+                style={styles.logoLink}
+              >
+                Ver logo actual
+              </a>
+            )}
+          </div>
 
           {editandoId && (
             <select
@@ -420,6 +503,7 @@ function Empresas({ usuario }) {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={styles.th}>Logo</th>
                 <th style={styles.th}>Empresa</th>
                 <th style={styles.th}>NIT</th>
                 <th style={styles.th}>Dirección</th>
@@ -432,13 +516,25 @@ function Empresas({ usuario }) {
             <tbody>
               {empresasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={styles.empty}>
+                  <td colSpan="7" style={styles.empty}>
                     No hay empresas registradas.
                   </td>
                 </tr>
               ) : (
                 empresasFiltradas.map((empresa) => (
                   <tr key={empresa.id}>
+                    <td style={styles.td}>
+                      {empresa.logo_url ? (
+                        <img
+                          src={empresa.logo_url}
+                          alt={empresa.nombre}
+                          style={styles.logoImg}
+                        />
+                      ) : (
+                        <span style={styles.noLogo}>Sin logo</span>
+                      )}
+                    </td>
+
                     <td style={styles.td}>{empresa.nombre || "-"}</td>
                     <td style={styles.td}>{empresa.nit || "-"}</td>
                     <td style={styles.td}>{empresa.direccion || "-"}</td>
@@ -570,6 +666,57 @@ const styles = {
     padding: "12px 14px",
     borderRadius: "12px",
     border: "1px solid #cbd5e1",
+  },
+  fileBox: {
+    padding: "12px 14px",
+    borderRadius: "12px",
+    border: "1px dashed #94a3b8",
+    background: "#f8fafc",
+    display: "flex",
+    flexDirection: "column",
+    gap: "6px",
+  },
+  fileLabel: {
+    fontWeight: "700",
+    color: "#334155",
+    fontSize: "14px",
+  },
+  fileInput: {
+    fontSize: "14px",
+    color: "#334155",
+  },
+  fileHelp: {
+    color: "#64748b",
+    fontSize: "12px",
+  },
+  fileSelected: {
+    color: "#166534",
+    fontWeight: "700",
+    fontSize: "13px",
+  },
+  logoLink: {
+    color: "#2563eb",
+    fontWeight: "700",
+    textDecoration: "none",
+    fontSize: "13px",
+  },
+  logoImg: {
+    width: "55px",
+    height: "55px",
+    objectFit: "contain",
+    borderRadius: "12px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    padding: "4px",
+  },
+  noLogo: {
+    padding: "7px 10px",
+    borderRadius: "10px",
+    background: "#f1f5f9",
+    color: "#64748b",
+    fontWeight: "700",
+    fontSize: "12px",
+    display: "inline-block",
   },
   button: {
     padding: "12px 16px",
