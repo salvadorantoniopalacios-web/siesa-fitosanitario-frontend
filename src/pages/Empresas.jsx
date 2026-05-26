@@ -23,7 +23,7 @@ function Empresas({ usuario }) {
     activo: true,
   });
 
-  const esAdmin = usuario?.rol?.toLowerCase() === "admin";
+  const esSuperAdmin = usuario?.rol === "SuperAdmin";
 
   const obtenerToken = () => {
     const token =
@@ -39,15 +39,11 @@ function Empresas({ usuario }) {
     return token;
   };
 
-  const getHeaders = () => {
-    const token = obtenerToken();
-
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-  };
+  const getHeaders = () => ({
+    headers: {
+      Authorization: `Bearer ${obtenerToken()}`,
+    },
+  });
 
   const mostrarMensaje = (texto, tipo) => {
     setMensaje({ texto, tipo });
@@ -66,9 +62,7 @@ function Empresas({ usuario }) {
 
   const cargarEmpresas = async () => {
     try {
-      const token = obtenerToken();
-
-      if (!token) {
+      if (!obtenerToken()) {
         mostrarMensaje("Debe cerrar sesión e iniciar sesión nuevamente.", "error");
         setEmpresas([]);
         return;
@@ -78,10 +72,7 @@ function Empresas({ usuario }) {
 
       setEmpresas(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error(
-        "Error cargando empresas:",
-        error.response?.data || error.message
-      );
+      console.error("Error cargando empresas:", error.response?.data || error.message);
 
       mostrarMensaje(
         error.response?.data?.mensaje || "No se pudieron cargar las empresas.",
@@ -93,10 +84,10 @@ function Empresas({ usuario }) {
   };
 
   useEffect(() => {
-    if (esAdmin) {
+    if (esSuperAdmin) {
       cargarEmpresas();
     }
-  }, [esAdmin]);
+  }, [esSuperAdmin]);
 
   const limpiarFormulario = () => {
     setForm({
@@ -115,8 +106,8 @@ function Empresas({ usuario }) {
   const validarFormulario = () => {
     limpiarMensaje();
 
-    if (!esAdmin) {
-      mostrarMensaje("Solo un usuario Admin puede administrar empresas.", "error");
+    if (!esSuperAdmin) {
+      mostrarMensaje("Solo un usuario SuperAdmin puede administrar empresas.", "error");
       return false;
     }
 
@@ -171,10 +162,7 @@ function Empresas({ usuario }) {
       limpiarFormulario();
       cargarEmpresas();
     } catch (error) {
-      console.error(
-        "Error guardando empresa:",
-        error.response?.data || error.message
-      );
+      console.error("Error guardando empresa:", error.response?.data || error.message);
 
       mostrarMensaje(
         error.response?.data?.mensaje || "No se pudo guardar la empresa.",
@@ -230,10 +218,7 @@ function Empresas({ usuario }) {
 
       cargarEmpresas();
     } catch (error) {
-      console.error(
-        "Error cambiando estado:",
-        error.response?.data || error.message
-      );
+      console.error("Error cambiando estado:", error.response?.data || error.message);
 
       mostrarMensaje(
         error.response?.data?.mensaje ||
@@ -261,7 +246,7 @@ function Empresas({ usuario }) {
   const totalActivas = empresas.filter((empresa) => empresa.activo !== false).length;
   const totalInactivas = empresas.filter((empresa) => empresa.activo === false).length;
 
-  if (!esAdmin) {
+  if (!esSuperAdmin) {
     return (
       <div style={styles.container}>
         <h1 style={styles.title}>Empresas</h1>
