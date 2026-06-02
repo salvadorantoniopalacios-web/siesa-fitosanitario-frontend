@@ -460,7 +460,32 @@ function Lotes({ usuario }) {
       behavior: "smooth",
     });
   };
+  const generarPdfLote = async (id) => {
+  try {
+    limpiarMensaje();
+    setLoading(true);
 
+    const res = await axios.get(`/lots/${id}/report/pdf`, {
+      responseType: "blob",
+    });
+
+    const archivoPdf = new Blob([res.data], {
+      type: "application/pdf",
+    });
+
+    const urlPdf = window.URL.createObjectURL(archivoPdf);
+    window.open(urlPdf, "_blank");
+  } catch (error) {
+    console.error("Error generando PDF lote:", error.response?.data || error.message);
+
+    mostrarMensaje(
+      error.response?.data?.mensaje || "No se pudo generar el PDF del lote.",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   const eliminarLote = async (
     id
   ) => {
@@ -1242,7 +1267,14 @@ const aplicacionesParaPlaga = aplicacionesLote
                           >
                             Editar
                           </button>
-
+                          <button
+                          type="button"
+                          style={styles.pdfButton}
+                          onClick={() => generarPdfLote(lote.id)}
+                          disabled={loading}
+                          >
+                           PDF
+                          </button>    
                           {puedeEliminar && (
                             <button
                               style={
@@ -1731,7 +1763,15 @@ filterSelect: {
     fontWeight: "700",
     cursor: "pointer",
   },
-
+  pdfButton: {
+  padding: "8px 12px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#0f172a",
+  color: "#ffffff",
+  fontWeight: "700",
+  cursor: "pointer",
+},
   deleteButton: {
     padding: "8px 12px",
     borderRadius: "10px",
