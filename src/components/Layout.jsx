@@ -203,6 +203,7 @@ const logoEmpresa =
           {opcionMenu("🤖", "Consulta IA", "consultaIA")}
           {opcionMenu("📊", "Evaluaciones", "evaluaciones")}
           {opcionMenu("💧", "Aplicaciones", "aplicaciones")}
+          {opcionMenu("📦", "Inventario", "inventario")}
 
           {opcionMenu(
             "🚨",

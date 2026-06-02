@@ -12,6 +12,7 @@ import ConsultaIA from "./ConsultaIA.jsx";
 import Plagas from "./Plagas.jsx";
 import Empresas from "./Empresas.jsx";
 import Aplicaciones from "./Aplicaciones.jsx";
+import Inventario from "./Inventario.jsx";
 
 import {
   BarChart,
@@ -119,6 +120,8 @@ function Dashboard({ usuario }) {
       ? "Evaluaciones"
       : vista === "aplicaciones"
       ? "Aplicaciones"
+      : vista === "inventario"
+      ? "Inventario"
       : vista === "alertas"
       ? "Alertas"
       : vista === "mapa"
@@ -521,6 +524,7 @@ function Dashboard({ usuario }) {
       {vista === "lotes" && <Lotes usuario={usuario} />}
       {vista === "evaluaciones" && <Evaluaciones usuario={usuario} />}
       {vista === "aplicaciones" && <Aplicaciones usuario={usuario} />}
+      {vista === "inventario" && <Inventario usuario={usuario} />}
       {vista === "alertas" && <Alertas usuario={usuario} />}
       {vista === "mapa" && <MapaFincas usuario={usuario} />}
       {vista === "usuarios" && <Usuarios usuario={usuario} />}
