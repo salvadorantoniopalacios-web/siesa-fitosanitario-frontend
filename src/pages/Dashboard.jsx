@@ -60,7 +60,23 @@ function Dashboard({ usuario }) {
       );
     }
   };
+  const generarReporteEjecutivo = async () => {
+  try {
+    const res = await axios.get("/dashboard/report/pdf", {
+      responseType: "blob",
+    });
 
+    const archivoPdf = new Blob([res.data], {
+      type: "application/pdf",
+    });
+
+    const urlPdf = window.URL.createObjectURL(archivoPdf);
+    window.open(urlPdf, "_blank");
+  } catch (error) {
+    console.error("Error generando reporte ejecutivo:", error);
+    alert("No se pudo generar el reporte ejecutivo.");
+  }
+};
   useEffect(() => {
     cargarDatosDashboard();
   }, [usuario?.company_id]);
@@ -307,7 +323,13 @@ function Dashboard({ usuario }) {
               | Rol: <strong>{usuario.rol}</strong>
             </div>
           )}
-
+          <button
+             type="button"
+              style={styles.reportButton}
+              onClick={generarReporteEjecutivo}
+              >
+             📄 Generar Reporte Ejecutivo
+              </button>
           {alertasCriticas > 0 && (
             <div style={styles.alertBanner}>
               ⚠️ Tienes <strong>{alertasCriticas}</strong> alertas críticas que
@@ -526,6 +548,16 @@ const styles = {
     border: "1px solid #a7f3d0",
     fontWeight: "600",
   },
+  reportButton: {
+  background: "#0f172a",
+  color: "#ffffff",
+  border: "none",
+  padding: "12px 16px",
+  borderRadius: "12px",
+  fontWeight: "800",
+  cursor: "pointer",
+  marginBottom: "18px",
+},
   alertBanner: {
     background: "#fee2e2",
     color: "#991b1b",
