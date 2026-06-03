@@ -9,6 +9,7 @@ function Aplicaciones({ usuario }) {
   const [fincas, setFincas] = useState([]);
   const [lotes, setLotes] = useState([]);
   const [plagasCatalogo, setPlagasCatalogo] = useState([]);
+  const [inventario, setInventario] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,8 @@ function Aplicaciones({ usuario }) {
     observaciones: "",
     latitud: "",
     longitud: "",
+    inventory_product_id: "",
+    cantidad_usada: "",
   });
 
   const mostrarMensaje = (texto, tipo) => {
@@ -108,13 +111,35 @@ function Aplicaciones({ usuario }) {
       setPlagasCatalogo([]);
     }
   };
+  const obtenerInventario = async () => {
+  try {
+    const res = await axios.get(
+      `${API_URL}/inventory`
+    );
 
-  useEffect(() => {
-    obtenerAplicaciones();
-    obtenerFincas();
-    obtenerLotes();
-    obtenerPlagas();
-  }, []);
+    setInventario(
+      Array.isArray(res.data)
+        ? res.data.filter(
+            (p) =>
+              p.estado === "Activo" &&
+              Number(p.existencia || 0) > 0
+          )
+        : []
+    );
+  } catch (error) {
+    console.error(
+      "Error obteniendo inventario:",
+      error.response?.data || error.message
+    );
+  }
+};
+useEffect(() => {
+  obtenerAplicaciones();
+  obtenerFincas();
+  obtenerLotes();
+  obtenerPlagas();
+  obtenerInventario();
+}, []);
 
   const lotesFiltradosPorFinca = form.farm_id
     ? lotes.filter((lote) => Number(lote.farm_id) === Number(form.farm_id))
@@ -128,38 +153,54 @@ function Aplicaciones({ usuario }) {
 
   const plagasActivas = plagasCatalogo.filter((plaga) => plaga.estado === "Activo");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    limpiarMensaje();
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  limpiarMensaje();
 
-    if (name === "farm_id") {
-      setForm({
-        ...form,
-        farm_id: value,
-        lot_id: "",
-        cultivo: "",
-        plaga_objetivo: "",
-      });
-      return;
-    }
+  if (name === "farm_id") {
+    setForm({
+      ...form,
+      farm_id: value,
+      lot_id: "",
+      cultivo: "",
+      plaga_objetivo: "",
+    });
+    return;
+  }
 
-    if (name === "lot_id") {
-      const lote = lotes.find((l) => Number(l.id) === Number(value));
-
-      setForm({
-        ...form,
-        lot_id: value,
-        cultivo: lote?.cultivo || "",
-        plaga_objetivo: "",
-      });
-      return;
-    }
+  if (name === "lot_id") {
+    const lote = lotes.find((l) => Number(l.id) === Number(value));
 
     setForm({
       ...form,
-      [name]: value,
+      lot_id: value,
+      cultivo: lote?.cultivo || "",
+      plaga_objetivo: "",
     });
-  };
+    return;
+  }
+
+  if (name === "inventory_product_id") {
+    const producto = inventario.find(
+      (p) => Number(p.id) === Number(value)
+    );
+
+    setForm({
+      ...form,
+      inventory_product_id: value,
+      producto_aplicado: producto?.nombre || "",
+      ingrediente_activo: producto?.ingrediente_activo || "",
+      unidad: producto?.unidad || form.unidad,
+    });
+
+    return;
+  }
+
+  setForm({
+    ...form,
+    [name]: value,
+  });
+};
 
   const validarImagen = (archivo) => {
     if (!archivo) return true;
@@ -249,6 +290,8 @@ function Aplicaciones({ usuario }) {
       observaciones: "",
       latitud: "",
       longitud: "",
+      inventory_product_id: "",
+      cantidad_usada: "",
     });
 
     setEditandoId(null);
@@ -333,6 +376,7 @@ function Aplicaciones({ usuario }) {
       }
 
       limpiarFormulario();
+      
       await obtenerAplicaciones();
     } catch (error) {
       console.error("Error guardando aplicación:", error.response?.data || error.message);
@@ -372,6 +416,9 @@ function Aplicaciones({ usuario }) {
       observaciones: aplicacion.observaciones || "",
       latitud: aplicacion.latitud || "",
       longitud: aplicacion.longitud || "",
+
+      inventory_product_id: aplicacion.inventory_product_id || "",
+      cantidad_usada: aplicacion.cantidad_usada || "",
     });
 
     const inputFoto = document.getElementById("foto-aplicacion");
@@ -553,7 +600,41 @@ function Aplicaciones({ usuario }) {
                 </option>
               ))}
             </select>
+            <select
+  style={styles.input}
+  name="inventory_product_id"
+  value={form.inventory_product_id}
+  onChange={handleChange}
+>
+  <option value="">
+    Seleccione producto de inventario
+  </option>
 
+  {inventario.map((producto) => (
+    <option
+      key={producto.id}
+      value={producto.id}
+    >
+      {producto.nombre}
+      {" | "}
+      Stock:
+      {" "}
+      {producto.existencia}
+      {" "}
+      {producto.unidad}
+    </option>
+  ))}
+</select>
+
+<input
+  style={styles.input}
+  type="number"
+  step="0.01"
+  name="cantidad_usada"
+  placeholder="Cantidad usada"
+  value={form.cantidad_usada}
+  onChange={handleChange}
+/>    
             <input
               style={styles.input}
               name="producto_aplicado"
