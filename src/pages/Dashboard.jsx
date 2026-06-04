@@ -47,7 +47,7 @@ function Dashboard({ usuario }) {
           axios.get("/alerts"),
           axios.get("/lots"),
           axios.get("/evaluations"),
-          axios.get("/inventory"),
+          
         ]);
 
       setFincas(Array.isArray(resFincas.data) ? resFincas.data : []);
@@ -56,7 +56,6 @@ function Dashboard({ usuario }) {
       setEvaluaciones(
         Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : []
       );
-      setInventario(Array.isArray(resInventario.data) ? resInventario.data : []);
     } catch (error) {
       console.error(
         "Error cargando datos dashboard:",
@@ -64,6 +63,22 @@ function Dashboard({ usuario }) {
       );
     }
   };
+  const cargarInventarioDashboard = async () => {
+  try {
+    const res = await axios.get("/inventory");
+
+    console.log("INVENTARIO DASHBOARD:", res.data);
+
+    setInventario(Array.isArray(res.data) ? res.data : []);
+  } catch (error) {
+    console.error(
+      "Error cargando inventario dashboard:",
+      error.response?.data || error.message
+    );
+
+    setInventario([]);
+  }
+};
   const generarReporteEjecutivo = async () => {
   try {
     const res = await axios.get("/dashboard/report/pdf", {
@@ -82,8 +97,9 @@ function Dashboard({ usuario }) {
   }
 };
   useEffect(() => {
-    cargarDatosDashboard();
-  }, [usuario?.company_id]);
+  cargarDatosDashboard();
+  cargarInventarioDashboard();
+}, [usuario?.company_id]);
 
   const limpiarNombrePlaga = (texto) => {
     if (!texto) return "Sin especificar";
