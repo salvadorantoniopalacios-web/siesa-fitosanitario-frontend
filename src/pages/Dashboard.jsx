@@ -36,6 +36,7 @@ function Dashboard({ usuario }) {
   const [fincas, setFincas] = useState([]);
   const [alertas, setAlertas] = useState([]);
   const [lotes, setLotes] = useState([]);
+  const [inventario, setInventario] = useState([]);
   const [evaluaciones, setEvaluaciones] = useState([]);
 
   const cargarDatosDashboard = async () => {
@@ -46,6 +47,7 @@ function Dashboard({ usuario }) {
           axios.get("/alerts"),
           axios.get("/lots"),
           axios.get("/evaluations"),
+          axios.get("/inventory"),
         ]);
 
       setFincas(Array.isArray(resFincas.data) ? resFincas.data : []);
@@ -54,6 +56,7 @@ function Dashboard({ usuario }) {
       setEvaluaciones(
         Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : []
       );
+      setInventario(Array.isArray(resInventario.data) ? resInventario.data : []);
     } catch (error) {
       console.error(
         "Error cargando datos dashboard:",
@@ -309,7 +312,24 @@ function Dashboard({ usuario }) {
     }))
     .sort((a, b) => b.total_alertas - a.total_alertas)
     .slice(0, 10);
+    const productosBajoStock = inventario.filter(
+  (p) => Number(p.existencia || 0) <= 5
+);
 
+const productosVencidos = inventario.filter((p) => {
+  if (!p.fecha_vencimiento) return false;
+  return new Date(p.fecha_vencimiento) < new Date();
+});
+
+const productosPorVencer = inventario.filter((p) => {
+  if (!p.fecha_vencimiento) return false;
+
+  const hoy = new Date();
+  const vencimiento = new Date(p.fecha_vencimiento);
+  const dias = (vencimiento - hoy) / (1000 * 60 * 60 * 24);
+
+  return dias >= 0 && dias <= 30;
+});
   return (
     <Layout
       setVista={setVista}
@@ -339,7 +359,10 @@ function Dashboard({ usuario }) {
               requieren atención inmediata.
             </div>
           )}
-
+          <div style={styles.inventoryAlertBox}>
+          <strong>Alertas de inventario:</strong>{" "}
+          Bajo stock: {productosBajoStock.length} | Vencidos: {productosVencidos.length} | Por vencer: {productosPorVencer.length}
+          </div>
           <div style={styles.cards}>
             <div style={styles.card}>
               <span style={styles.icon}>🌱</span>
@@ -561,6 +584,15 @@ const styles = {
   fontWeight: "800",
   cursor: "pointer",
   marginBottom: "18px",
+},
+  inventoryAlertBox: {
+  background: "#fff7ed",
+  color: "#9a3412",
+  padding: "14px 16px",
+  borderRadius: "12px",
+  marginBottom: "18px",
+  border: "1px solid #fed7aa",
+  fontWeight: "700",
 },
   alertBanner: {
     background: "#fee2e2",
