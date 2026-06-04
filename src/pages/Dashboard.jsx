@@ -316,17 +316,27 @@ function Dashboard({ usuario }) {
   (p) => Number(p.existencia || 0) <= 5
 );
 
+const hoy = new Date();
+hoy.setHours(0, 0, 0, 0);
+
 const productosVencidos = inventario.filter((p) => {
   if (!p.fecha_vencimiento) return false;
-  return new Date(p.fecha_vencimiento) < new Date();
+
+  const vencimiento = new Date(p.fecha_vencimiento);
+  vencimiento.setHours(0, 0, 0, 0);
+
+  return vencimiento < hoy;
 });
 
 const productosPorVencer = inventario.filter((p) => {
   if (!p.fecha_vencimiento) return false;
 
-  const hoy = new Date();
   const vencimiento = new Date(p.fecha_vencimiento);
-  const dias = (vencimiento - hoy) / (1000 * 60 * 60 * 24);
+  vencimiento.setHours(0, 0, 0, 0);
+
+  const dias =
+    (vencimiento.getTime() - hoy.getTime()) /
+    (1000 * 60 * 60 * 24);
 
   return dias >= 0 && dias <= 30;
 });
