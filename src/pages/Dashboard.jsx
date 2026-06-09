@@ -595,6 +595,45 @@ const productosPorVencer = inventario.filter((p) => {
           </div>
 
           <div style={styles.panel}>
+          <div style={styles.panel}>
+  <h3 style={styles.panelTitle}>Top lotes con mayor costo</h3>
+
+  <div style={styles.tableWrapper}>
+    <table style={styles.table}>
+      <thead>
+        <tr>
+          <th style={styles.th}>Lote</th>
+          <th style={styles.th}>Finca</th>
+          <th style={styles.th}>Cultivo</th>
+          <th style={styles.th}>Costo total</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {costosDashboard.costosPorLote.length === 0 ? (
+          <tr>
+            <td colSpan="4" style={styles.empty}>
+              No hay costos registrados por lote.
+            </td>
+          </tr>
+        ) : (
+          costosDashboard.costosPorLote.map((item, index) => (
+            <tr key={index}>
+              <td style={styles.td}>{item.lote || "-"}</td>
+              <td style={styles.td}>{item.finca || "-"}</td>
+              <td style={styles.td}>{item.cultivo || "-"}</td>
+              <td style={styles.td}>
+                <span style={styles.costBadge}>
+                  Q {Number(item.costo_total || 0).toFixed(2)}
+                </span>
+              </td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
             <h3 style={styles.panelTitle}>Top lotes críticos</h3>
 
             <div style={styles.tableWrapper}>
@@ -688,6 +727,13 @@ const styles = {
   fontWeight: "800",
   cursor: "pointer",
   marginBottom: "18px",
+},
+costBadge: {
+  padding: "6px 12px",
+  borderRadius: "999px",
+  background: "#ecfdf5",
+  color: "#166534",
+  fontWeight: "800",
 },
   inventoryAlertBox: {
   background: "#fff7ed",
