@@ -251,6 +251,7 @@ const styles = {
     background: "linear-gradient(#064e2b, #022c22)",
     color: "#ffffff",
     padding: "20px",
+    paddingBottom: "24px",
     display: "flex",
     flexDirection: "column",
     height: "100vh",
@@ -259,6 +260,7 @@ const styles = {
     boxSizing: "border-box",
     zIndex: 20,
     boxShadow: "8px 0 24px rgba(15,23,42,0.16)",
+    overflowY: "auto",
   },
 
   sidebarMovil: {
@@ -343,6 +345,7 @@ logoImage: {
     display: "flex",
     flexDirection: "column",
     gap: "8px",
+    paddingBottom: "18px",
   },
 
   menuButton: {
