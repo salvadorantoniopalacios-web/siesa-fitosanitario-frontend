@@ -38,7 +38,12 @@ function Dashboard({ usuario }) {
   const [lotes, setLotes] = useState([]);
   const [inventario, setInventario] = useState([]);
   const [evaluaciones, setEvaluaciones] = useState([]);
-
+  const [costosDashboard, setCostosDashboard] = useState({
+  costoTotalAplicaciones: 0,
+  costosPorFinca: [],
+  costosPorLote: [],
+  costosPorCultivo: [],
+});
   const cargarDatosDashboard = async () => {
     try {
       const [resFincas, resAlertas, resLotes, resEvaluaciones] =
@@ -79,6 +84,29 @@ function Dashboard({ usuario }) {
     setInventario([]);
   }
 };
+const cargarCostosDashboard = async () => {
+  try {
+    const res = await axios.get("/dashboard/summary");
+
+    setCostosDashboard({
+      costoTotalAplicaciones: Number(res.data?.costoTotalAplicaciones || 0),
+      costosPorFinca: Array.isArray(res.data?.costosPorFinca)
+        ? res.data.costosPorFinca
+        : [],
+      costosPorLote: Array.isArray(res.data?.costosPorLote)
+        ? res.data.costosPorLote
+        : [],
+      costosPorCultivo: Array.isArray(res.data?.costosPorCultivo)
+        ? res.data.costosPorCultivo
+        : [],
+    });
+  } catch (error) {
+    console.error(
+      "Error cargando costos dashboard:",
+      error.response?.data || error.message
+    );
+  }
+};
   const generarReporteEjecutivo = async () => {
   try {
     const res = await axios.get("/dashboard/report/pdf", {
@@ -99,6 +127,7 @@ function Dashboard({ usuario }) {
   useEffect(() => {
   cargarDatosDashboard();
   cargarInventarioDashboard();
+  cargarCostosDashboard();
 }, [usuario?.company_id]);
 
   const limpiarNombrePlaga = (texto) => {
@@ -372,6 +401,42 @@ const productosPorVencer = inventario.filter((p) => {
               | Rol: <strong>{usuario.rol}</strong>
             </div>
           )}
+          <div style={styles.executiveTitleBox}>
+  <h2 style={styles.executiveTitle}>Costos fitosanitarios</h2>
+  <p style={styles.executiveSubtitle}>
+    Costo aplicado por finca, lote y cultivo.
+  </p>
+</div>
+
+<div style={styles.grid}>
+  <div style={styles.panel}>
+    <h3 style={styles.panelTitle}>Costo por finca</h3>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={costosDashboard.costosPorFinca}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="finca" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="costo_total" fill="#15803d" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+
+  <div style={styles.panel}>
+    <h3 style={styles.panelTitle}>Costo por cultivo</h3>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={costosDashboard.costosPorCultivo}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="cultivo" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="costo_total" fill="#2563eb" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
           <button
              type="button"
               style={styles.reportButton}
@@ -389,6 +454,10 @@ const productosPorVencer = inventario.filter((p) => {
           <strong>Alertas de inventario:</strong>{" "}
           Bajo stock: {productosBajoStock.length} | Vencidos: {productosVencidos.length} | Por vencer: {productosPorVencer.length}
           </div>
+          <div style={styles.costSummaryBox}>
+  <strong>Costo total aplicado:</strong>{" "}
+  Q {Number(costosDashboard.costoTotalAplicaciones || 0).toFixed(2)}
+</div>
           <div style={styles.cards}>
             <div style={styles.card}>
               <span style={styles.icon}>🌱</span>
@@ -601,6 +670,15 @@ const styles = {
     border: "1px solid #a7f3d0",
     fontWeight: "600",
   },
+    costSummaryBox: {
+  background: "#ecfdf5",
+  color: "#166534",
+  padding: "14px 16px",
+  borderRadius: "12px",
+  marginBottom: "18px",
+  border: "1px solid #bbf7d0",
+  fontWeight: "800",
+},
   reportButton: {
   background: "#0f172a",
   color: "#ffffff",
