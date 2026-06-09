@@ -825,6 +825,9 @@ const handleChange = (e) => {
                 <th style={styles.th}>Producto</th>
                 <th style={styles.th}>Ingrediente activo</th>
                 <th style={styles.th}>Dosis</th>
+                <th style={styles.th}>Cantidad usada</th>
+                <th style={styles.th}>Costo unitario</th>
+                <th style={styles.th}>Costo total</th>
                 <th style={styles.th}>Responsable</th>
                 <th style={styles.th}>GPS</th>
                 <th style={styles.th}>Evidencia</th>
@@ -838,7 +841,7 @@ const handleChange = (e) => {
               {aplicacionesFiltradas.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={puedeCrearEditar || puedeEliminar ? "12" : "11"}
+                    colSpan={puedeCrearEditar || puedeEliminar ? "15" : "14"}
                     style={styles.empty}
                   >
                     No hay aplicaciones registradas.
@@ -857,6 +860,23 @@ const handleChange = (e) => {
                     <td style={styles.td}>
                       {item.dosis || "-"} {item.unidad || ""}
                     </td>
+                    <td style={styles.td}>
+  {item.cantidad_usada || "-"} {item.unidad_inventario || ""}
+</td>
+
+<td style={styles.td}>
+  {item.costo_unitario
+    ? `Q ${Number(item.costo_unitario).toFixed(2)}`
+    : "-"}
+</td>
+
+<td style={styles.td}>
+  <span style={styles.costBadge}>
+    {item.costo_total
+      ? `Q ${Number(item.costo_total).toFixed(2)}`
+      : "Q 0.00"}
+  </span>
+</td>
                     <td style={styles.td}>{item.responsable || "-"}</td>
 
                     <td style={styles.td}>
@@ -1176,6 +1196,15 @@ const styles = {
     fontSize: "13px",
     display: "inline-block",
   },
+  costBadge: {
+  padding: "7px 12px",
+  borderRadius: "10px",
+  background: "#ecfdf5",
+  color: "#166534",
+  fontWeight: "800",
+  fontSize: "13px",
+  display: "inline-block",
+},
   actions: {
     display: "flex",
     gap: "8px",
